@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WhatCurseForgeProjectIsThis
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A9FB5406-A4AC-431F-B9FB-08C1B8B9CAAD}"
 	ProjectSection(SolutionItems) = preProject
-		.github\CI.yml = .github\CI.yml
+		.github\workflows\CI.yml = .github\workflows\CI.yml
 	EndProjectSection
 EndProject
 Global
