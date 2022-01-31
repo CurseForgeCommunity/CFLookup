@@ -1,7 +1,17 @@
+using StackExchange.Redis;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+
+builder.Services.AddSingleton<ConnectionMultiplexer>(ConnectionMultiplexer.Connect("127.0.0.1:6379"));
+
+builder.Services.AddScoped<CurseForge.APIClient.ApiClient>(options =>
+{
+    var cfApiKey = Environment.GetEnvironmentVariable("CFAPI_Key");
+    return new CurseForge.APIClient.ApiClient(cfApiKey, 201, "whatcfprojectisthat@nolifeking85.tv");
+});
 
 var app = builder.Build();
 

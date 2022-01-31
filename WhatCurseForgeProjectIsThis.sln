@@ -5,6 +5,11 @@ VisualStudioVersion = 17.1.32104.313
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WhatCurseForgeProjectIsThis", "WhatCurseForgeProjectIsThis\WhatCurseForgeProjectIsThis.csproj", "{234AF4A6-AF38-4514-8F86-410A0F546860}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A9FB5406-A4AC-431F-B9FB-08C1B8B9CAAD}"
+	ProjectSection(SolutionItems) = preProject
+		.github\CI.yml = .github\CI.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
