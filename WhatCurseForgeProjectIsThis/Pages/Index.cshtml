@@ -78,6 +78,10 @@
                             <td><b>Categories</b></td>
                             <td class="text-end">@Html.Raw(string.Join("<br />", Model.FoundMod.Categories.Select(c => "<a href=\"" + c.Url + "\" class=\"text-white\" target=\"_blank\">" + HttpUtility.HtmlEncode(c.Name) + "</a>")))</td>
                         </tr>
+                        <tr>
+                            <td><b>Mod Distribution</b></td>
+                            <td class="text-end">@(Model.FoundMod.AllowModDistribution ?? true ? "Allowed" : "Not allowed")</td>
+                        </tr>
                     </tbody>
                 </table>
                 @if (Model.FoundMod.Screenshots.Count > 0)
@@ -121,7 +125,7 @@
                     </div>
                 }
                 @{
-                    var permLink = @Url.PageLink($"/Index", values: new { projectId = Model.FoundMod.Id });
+                    var permLink = @Url.PageLink($"/Index", values: new { projectId = Model.FoundMod.Id }, protocol: "https");
                 }
                 <p class="text-muted"><em>Permalink: <a href="@permLink" class="text-muted" target="_blank">@permLink</a></em></p>
             </div>

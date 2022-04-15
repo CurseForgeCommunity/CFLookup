@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CurseForge.APIClient" Version="1.0.1" />
-    <PackageReference Include="StackExchange.Redis" Version="2.2.88" />
+    <PackageReference Include="CurseForge.APIClient" Version="1.1.3" />
+    <PackageReference Include="StackExchange.Redis" Version="2.5.61" />
   </ItemGroup>
 
 </Project>
