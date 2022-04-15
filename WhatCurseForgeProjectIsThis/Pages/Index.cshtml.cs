@@ -82,13 +82,13 @@ namespace WhatCurseForgeProjectIsThis.Pages
 
                 var modJson = JsonConvert.SerializeObject(modResult.Data);
 
-                await _redis.StringSetAsync($"cf-mod-{projectId}", modJson, TimeSpan.FromDays(14));
+                await _redis.StringSetAsync($"cf-mod-{projectId}", modJson, TimeSpan.FromMinutes(5));
 
                 FoundMod = modResult.Data;
             }
             catch
             {
-                await _redis.StringSetAsync($"cf-mod-{projectId}", "empty", TimeSpan.FromDays(14));
+                await _redis.StringSetAsync($"cf-mod-{projectId}", "empty", TimeSpan.FromMinutes(5));
                 ErrorMessage = "Project not found, or problems with the query. Try again later.";
             }
         }
