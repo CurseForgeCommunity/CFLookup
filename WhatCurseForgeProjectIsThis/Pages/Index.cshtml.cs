@@ -1,4 +1,5 @@
 ﻿using CurseForge.APIClient;
+using CurseForge.APIClient.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Newtonsoft.Json;
@@ -16,6 +17,8 @@ namespace WhatCurseForgeProjectIsThis.Pages
 
         [BindProperty]
         public string ProjectSearchField { get; set; } = string.Empty;
+        [BindProperty]
+        public string FileSearchField { get; set; } = string.Empty;
         public string ErrorMessage { get; set; } = string.Empty;
 
         public CurseForge.APIClient.Models.Mods.Mod? FoundMod { get; set; }
@@ -29,8 +32,14 @@ namespace WhatCurseForgeProjectIsThis.Pages
             _redis = connectionMultiplexer.GetDatabase(5);
         }
 
-        public async Task OnGet(int? projectId = null)
+        public async Task OnGet(int? projectId = null, long? fileId = null)
         {
+            if (fileId.HasValue)
+            {
+                FileSearchField = fileId.Value.ToString();
+                projectId = await SearchModFileAsync(fileId.Value);
+            }
+
             if (projectId.HasValue)
             {
                 ProjectSearchField = projectId.Value.ToString();
@@ -40,7 +49,27 @@ namespace WhatCurseForgeProjectIsThis.Pages
 
         public async Task<IActionResult> OnPostAsync()
         {
+            var couldParseFileId = long.TryParse(FileSearchField, out var fileId);
+
             var couldParseProjectId = int.TryParse(ProjectSearchField, out int projectId);
+
+            if (couldParseFileId)
+            {
+                var tmpProjectId = await SearchModFileAsync(fileId);
+
+                if (tmpProjectId.HasValue)
+                {
+                    projectId = tmpProjectId.Value;
+                    couldParseProjectId = true;
+                    ProjectSearchField = projectId.ToString();
+                }
+                else
+                {
+                    ErrorMessage = "Could not find mod with file id " + fileId;
+                    return Page();
+                }
+            }
+
             if (string.IsNullOrEmpty(ProjectSearchField) && !couldParseProjectId)
             {
                 ErrorMessage = "You need to enter a valid project id to lookup the project.";
@@ -50,6 +79,54 @@ namespace WhatCurseForgeProjectIsThis.Pages
             await SearchModAsync(projectId);
 
             return Page();
+        }
+
+        private async Task<int?> SearchModFileAsync(long fileId)
+        {
+            ErrorMessage = string.Empty;
+            var modResultCache = await _redis.StringGetAsync($"cf-file-{fileId}");
+            if (!modResultCache.IsNull)
+            {
+                if (modResultCache == "empty")
+                {
+                    ErrorMessage = "File not found, or problems with the query. Try again later.";
+                    FoundMod = null;
+                    return null;
+                }
+
+                var obj = JsonConvert.DeserializeObject<GenericListResponse<CurseForge.APIClient.Models.Files.File>>(modResultCache);
+
+                if (obj?.Data.Count > 0)
+                {
+                    return obj.Data[0].ModId;
+                }
+            }
+
+            try
+            {
+                var modResult = await _cfApiClient.GetFilesAsync(new CurseForge.APIClient.Models.Files.GetModFilesRequestBody
+                {
+                    FileIds = new List<long> { fileId }
+                });
+
+                if (modResult.Data.Count > 0)
+                {
+                    var modJson = JsonConvert.SerializeObject(modResult);
+                    await _redis.StringSetAsync($"cf-file-{fileId}", modJson, TimeSpan.FromMinutes(5));
+
+                    return modResult.Data[0].ModId;
+                }
+
+                await _redis.StringSetAsync($"cf-file-{fileId}", "empty", TimeSpan.FromMinutes(5));
+            }
+            catch
+            {
+                await _redis.StringSetAsync($"cf-file-{fileId}", "empty", TimeSpan.FromMinutes(5));
+                ErrorMessage = "File not found, or problems with the query. Try again later.";
+
+            }
+
+            return null;
         }
 
         private async Task SearchModAsync(int projectId)

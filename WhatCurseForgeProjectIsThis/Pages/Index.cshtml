@@ -22,6 +22,19 @@
                     <input type="number" class="form-control text-center" id="projectSearchField" asp-for="ProjectSearchField" placeholder="Project Id (project-<number>)" />
                     <button type="submit" class="btn btn-secondary">Search project</button>
                 </div>
+            </div>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="input-group mb-3">
+                    <label class="input-group-text" for="fileSearchField">File Id</label>
+                    <input type="number" class="form-control text-center" id="fileSearchField" asp-for="FileSearchField" placeholder="File Id" />
+                    <button type="submit" class="btn btn-secondary">Search file</button>
+                </div>
+            </div>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
                 <p class="text-muted"><em>This tool is primarly focused on helping you find what mods that are deleted, and cannot be used in CurseForge.</em></p>
             </div>
         </div>
@@ -125,7 +138,7 @@
                     </div>
                 }
                 @{
-                    var permLink = @Url.PageLink($"/Index", values: new { projectId = Model.FoundMod.Id }, protocol: "https");
+                    var permLink = @Url.PageLink($"/Index", values: new { projectId = Model.FoundMod.Id, fileId = Model.FileSearchField }, protocol: "https");
                 }
                 <p class="text-muted"><em>Permalink: <a href="@permLink" class="text-muted" target="_blank">@permLink</a></em></p>
             </div>
