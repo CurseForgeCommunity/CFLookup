@@ -55,8 +55,18 @@
     else
     {
         <hr />
-        <img src="@Model.FoundMod.Logo.ThumbnailUrl" />
-        <h2><a href="@Model.FoundMod.Links.WebsiteUrl" class="text-white" target="_blank">@Model.FoundMod.Name</a> <i class="bi bi-box-arrow-up-right"></i></h2>
+        @if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
+        {
+            <img src="@Model.FoundMod.Logo.ThumbnailUrl" />
+        }
+        @if (Model.FoundMod.Links != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Links.WebsiteUrl))
+        {
+            <h2><a href="@Model.FoundMod.Links.WebsiteUrl" class="text-white" target="_blank">@Model.FoundMod.Name</a> <i class="bi bi-box-arrow-up-right"></i></h2>
+        }
+        else
+        {
+            <h2>@Model.FoundMod.Name</h2>
+        }
         <p><i>@Model.FoundMod.Summary</i></p>
         <div class="row justify-content-center">
             <div class="col-md-6">
@@ -97,7 +107,7 @@
                         </tr>
                     </tbody>
                 </table>
-                @if (Model.FoundMod.Screenshots.Count > 0)
+                @if (Model.FoundMod.Screenshots?.Count > 0)
                 {
                     <div class="carousel slide" data-bs-ride="carousel" id="screenshots">
                         <div class="carousel-indicators">
