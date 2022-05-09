@@ -52,7 +52,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
                 {
                     if (FoundMod.Links != null && !string.IsNullOrWhiteSpace(FoundMod.Links.WebsiteUrl))
                     {
-                        if (IgnoredUserAgentsForRedirect.Any(i => Request.Headers.UserAgent.Contains(i))
+                        if (IgnoredUserAgentsForRedirect.Any(i => Request.Headers.UserAgent.Contains(i)))
                         {
                             return;
                         }
