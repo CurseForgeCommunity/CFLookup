@@ -11,4 +11,6 @@
     <PackageReference Include="StackExchange.Redis" Version="2.5.61" />
   </ItemGroup>
 
+  <ProjectExtensions><VisualStudio><UserProperties wwwroot_4manifest_1json__JsonSchema="https://json.schemastore.org/web-manifest-combined.json" /></VisualStudio></ProjectExtensions>
+
 </Project>

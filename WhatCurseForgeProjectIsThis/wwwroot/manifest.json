@@ -1,0 +1,11 @@
+﻿{
+  "short_name": "WCFPIT?",
+  "name": "What CurseForge Project is This?",
+  "start_url": "/?source=pwa",
+  "id": "/?source=pwa",
+  "background_color": "#f16436",
+  "theme_color": "#f16436",
+  "display": "standalone",
+  "scope": "/",
+  "description": "CurseForge project information"
+}

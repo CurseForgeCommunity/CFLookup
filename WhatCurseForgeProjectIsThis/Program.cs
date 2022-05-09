@@ -1,6 +1,27 @@
+using Microsoft.AspNetCore.ResponseCompression;
 using StackExchange.Redis;
+using System.IO.Compression;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+
+builder.Services.AddResponseCaching();
+
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Fastest;
+});
+
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.SmallestSize;
+});
 
 // Add services to the container.
 builder.Services.AddRazorPages();
@@ -15,6 +36,10 @@ builder.Services.AddScoped<CurseForge.APIClient.ApiClient>(options =>
 
 var app = builder.Build();
 
+app.UseResponseCompression();
+
+app.UseResponseCaching();
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -24,7 +49,13 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Cache-Control", $"public, max-age={(60 * 60 * 24 * 30)}");
+    }
+});
 
 app.UseRouting();
 
