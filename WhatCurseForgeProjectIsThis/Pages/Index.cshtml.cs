@@ -32,7 +32,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
             _redis = connectionMultiplexer.GetDatabase(5);
         }
 
-        public async Task OnGet(int? projectId = null, long? fileId = null)
+        public async Task OnGet(int? projectId = null, long? fileId = null, bool? rcf = false)
         {
             if (fileId.HasValue)
             {
@@ -45,7 +45,31 @@ namespace WhatCurseForgeProjectIsThis.Pages
                 ProjectSearchField = projectId.Value.ToString();
                 await SearchModAsync(projectId.Value);
             }
+
+            if (rcf.HasValue && rcf.Value)
+            {
+                if (FoundMod != null)
+                {
+                    if (FoundMod.Links != null && !string.IsNullOrWhiteSpace(FoundMod.Links.WebsiteUrl))
+                    {
+                        if (IgnoredUserAgentsForRedirect.Any(i => Request.Headers.UserAgent.Contains(i))
+                        {
+                            return;
+                        }
+
+                        Response.Redirect(FoundMod.Links.WebsiteUrl);
+                    }
+                }
+            }
         }
+
+        internal string[] IgnoredUserAgentsForRedirect = new[]
+        {
+           "Twitterbot",
+           "Discordbot",
+           "facebookexternalhit",
+           "LinkedInBot"
+        };
 
         public async Task<IActionResult> OnPostAsync()
         {
