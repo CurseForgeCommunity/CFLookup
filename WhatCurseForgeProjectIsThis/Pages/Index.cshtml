@@ -85,7 +85,7 @@
         <hr />
         @if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
         {
-            <img src="@Model.FoundMod.Logo.ThumbnailUrl" />
+            <img src="@Model.FoundMod.Logo.ThumbnailUrl" alt="Project logotype" />
         }
         @if (Model.FoundMod.Links != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Links.WebsiteUrl))
         {
