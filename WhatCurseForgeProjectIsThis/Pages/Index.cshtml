@@ -5,9 +5,36 @@
 @{
     ViewData["Title"] = "What?";
 
+    var permLink = string.Empty;
+
     if (Model.FoundMod != null)
     {
         ViewData["Title"] = Model.FoundMod.Name;
+        permLink = @Url.PageLink($"/Index", values: new { projectId = Model.FoundMod.Id, fileId = Model.FileSearchField }, protocol: "https");
+    }
+}
+
+@section Head {
+    @if (Model.FoundMod != null)
+    {
+        <meta property="og:title" content="@Model.FoundMod.Name" />
+        <meta name="twitter:title" content="@Model.FoundMod.Name" />
+        <meta property="og:url" content="@permLink" />
+        if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
+        {
+            <meta property="og:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
+            <meta name="twitter:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
+        }
+        <meta name="description" content="@Model.FoundMod.Summary" />
+        <meta name="twitter:description" content="@Model.FoundMod.Summary" />
+        <meta name="twitter:site" content="@@NoLifeKing85">
+    }
+    else
+    {
+        <meta property="og:title" content="What CurseForge Project Is This?" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://wcfpit.nolifeking85.tv/" />
+        <meta name="description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
     }
 }
 
@@ -146,9 +173,6 @@
                             <span class="visually-hidden">Next</span>
                         </button>
                     </div>
-                }
-                @{
-                    var permLink = @Url.PageLink($"/Index", values: new { projectId = Model.FoundMod.Id, fileId = Model.FileSearchField }, protocol: "https");
                 }
                 <p class="text-muted"><em>Permalink: <a href="@permLink" class="text-muted" target="_blank">@permLink</a></em></p>
             </div>

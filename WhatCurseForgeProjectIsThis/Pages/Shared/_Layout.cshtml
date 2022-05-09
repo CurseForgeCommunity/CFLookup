@@ -3,11 +3,14 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f16436" />
+    <link rel="manifest" href="/manifest.json" />
     <title>@ViewData["Title"] - What CurseForge Project Is This?</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/WhatCurseForgeProjectIsThis.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
 </head>
 <body class="bg-dark text-white">
     <header>
