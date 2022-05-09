@@ -108,7 +108,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
 
         private async Task<List<Category>> GetCategoryInfo(List<Game> gameInfo, string game)
         {
-            var cachedCategories = await _redis.StringGetAsync("cf-categories");
+            var cachedCategories = await _redis.StringGetAsync($"cf-categories-{game}");
 
             if (!cachedCategories.IsNullOrEmpty)
             {
