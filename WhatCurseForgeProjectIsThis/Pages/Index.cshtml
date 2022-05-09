@@ -19,7 +19,10 @@
     {
         <meta property="og:title" content="@Model.FoundMod.Name" />
         <meta name="twitter:title" content="@Model.FoundMod.Name" />
-        <meta property="og:url" content="@permLink" />
+        if (Model.FoundMod.Links != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Links.WebsiteUrl))
+        {
+            <meta property="og:url" content="@Model.FoundMod.Links.WebsiteUrl" />
+        }
         if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
         {
             <meta property="og:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
@@ -28,7 +31,7 @@
         <meta name="description" content="@Model.FoundMod.Summary" />
         <meta name="og:description" content="@Model.FoundMod.Summary" />
         <meta name="twitter:description" content="@Model.FoundMod.Summary" />
-        <meta name="twitter:site" content="@@NoLifeKing85">
+        <meta name="twitter:site" content="@@CurseForge">
     }
     else
     {
@@ -36,6 +39,9 @@
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://wcfpit.nolifeking85.tv/" />
         <meta name="description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
+        <meta name="og:description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
+        <meta name="twitter:description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
+        <meta name="twitter:site" content="@@NoLifeKing85">
     }
 }
 
