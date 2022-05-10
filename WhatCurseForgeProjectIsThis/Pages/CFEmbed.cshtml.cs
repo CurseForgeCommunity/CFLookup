@@ -49,7 +49,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
 
                 if (searchForSlug == null)
                 {
-                    return NotFound();
+                    return Redirect($"https://www.curseforge.com/{game}/{category}/{slug}");
                 }
 
                 if (FoundMod?.Links != null && !string.IsNullOrWhiteSpace(FoundMod.Links.WebsiteUrl))
@@ -93,6 +93,11 @@ namespace WhatCurseForgeProjectIsThis.Pages
             }
 
             var mod = await _cfApiClient.SearchModsAsync(gameId.Value, classId: categoryId, slug: slug);
+
+            if (mod.Data.Count == 0)
+            {
+                mod = await _cfApiClient.SearchModsAsync(gameId.Value, categoryId: categoryId, slug: slug);
+            }
 
             if (mod.Data.Count == 1)
             {
