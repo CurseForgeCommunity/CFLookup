@@ -8,7 +8,7 @@
     if (Model.FoundMod != null)
     {
         ViewData["Title"] = Model.FoundMod.Name;
-        permLink = @Url.PageLink($"/Index", values: new { projectId = Model.FoundMod.Id, fileId = Model.FileSearchField }, protocol: "https");
+        permLink = Url.PageLink($"/CFEmbed", values: new { game = Model.Game, category = Model.Category, slug = Model.Slug }, protocol: "https");
     }
 }
 
@@ -36,12 +36,11 @@
     }
     else
     {
-<meta property="og:title" content="What CurseForge Project Is This?" />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="https://wcfpit.nolifeking85.tv/" />
-<meta name="description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
-<meta name="og:description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
-<meta name="twitter:description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
+<meta property="og:title" content="@Model.Slug - Embed not available yet" />
+<meta property="og:url" content="@permLink" />
+<meta name="description" content="We could not find the information for the requested mod, or it is not available through the CurseForge Core API yet." />
+<meta name="og:description" content="We could not find the information for the requested mod, or it is not available through the CurseForge Core API yet." />
+<meta name="twitter:description" content="We could not find the information for the requested mod, or it is not available through the CurseForge Core API yet." />
 <meta name="twitter:site" content="@@NoLifeKing85">
     }
 }

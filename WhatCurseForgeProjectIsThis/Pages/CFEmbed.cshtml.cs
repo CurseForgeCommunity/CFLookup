@@ -21,6 +21,10 @@ namespace WhatCurseForgeProjectIsThis.Pages
         public string FileSearchField { get; set; } = string.Empty;
         public string ErrorMessage { get; set; } = string.Empty;
 
+        public string Game { get; set; }
+        public string Category { get; set; }
+        public string Slug { get; set; }
+
         public CurseForge.APIClient.Models.Mods.Mod? FoundMod { get; set; }
 
         public CFEmbedModel(ILogger<IndexModel> logger, ApiClient cfApiClient, ConnectionMultiplexer connectionMultiplexer)
@@ -40,6 +44,9 @@ namespace WhatCurseForgeProjectIsThis.Pages
 
         public async Task<IActionResult> OnGet(string game, string category, string slug)
         {
+            Game = game;
+            Category = category;
+            Slug = slug;
             try
             {
                 var gameInfo = await GetGameInfo();
@@ -49,7 +56,10 @@ namespace WhatCurseForgeProjectIsThis.Pages
 
                 if (searchForSlug == null)
                 {
-                    return Redirect($"https://www.curseforge.com/{game}/{category}/{slug}");
+                    if (!IgnoredUserAgentsForRedirect.Any(i => Request.Headers.UserAgent.Any(ua => ua.Contains(i))))
+                    {
+                        return Redirect($"https://www.curseforge.com/{game}/{category}/{slug}");
+                    }
                 }
 
                 if (FoundMod?.Links != null && !string.IsNullOrWhiteSpace(FoundMod.Links.WebsiteUrl))
