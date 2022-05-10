@@ -118,7 +118,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
             var gameId = gameInfo.FirstOrDefault(x => x.Slug.Equals(game, StringComparison.InvariantCultureIgnoreCase))?.Id;
 
             var categories = await _cfApiClient.GetCategoriesAsync(gameId);
-            await _redis.StringSetAsync("cf-categories", JsonConvert.SerializeObject(categories.Data), TimeSpan.FromHours(6));
+            await _redis.StringSetAsync("cf-categories", JsonConvert.SerializeObject(categories.Data), TimeSpan.FromMinutes(5));
 
             return categories.Data;
         }
@@ -133,7 +133,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
             }
 
             var games = await _cfApiClient.GetGamesAsync();
-            await _redis.StringSetAsync("cf-games", JsonConvert.SerializeObject(games.Data), TimeSpan.FromHours(6));
+            await _redis.StringSetAsync("cf-games", JsonConvert.SerializeObject(games.Data), TimeSpan.FromMinutes(5));
             return games.Data;
         }
     }

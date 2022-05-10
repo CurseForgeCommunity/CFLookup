@@ -141,13 +141,12 @@ namespace WhatCurseForgeProjectIsThis.Pages
                     return modResult.Data[0].ModId;
                 }
 
-                await _redis.StringSetAsync($"cf-file-{fileId}", "empty", TimeSpan.FromMinutes(5));
+                ErrorMessage = "File not found, or problems with the query. Try again later.";
+                return null;
             }
             catch
             {
-                await _redis.StringSetAsync($"cf-file-{fileId}", "empty", TimeSpan.FromMinutes(5));
                 ErrorMessage = "File not found, or problems with the query. Try again later.";
-
             }
 
             return null;
@@ -189,7 +188,6 @@ namespace WhatCurseForgeProjectIsThis.Pages
             }
             catch
             {
-                await _redis.StringSetAsync($"cf-mod-{projectId}", "empty", TimeSpan.FromMinutes(5));
                 ErrorMessage = "Project not found, or problems with the query. Try again later.";
             }
         }
