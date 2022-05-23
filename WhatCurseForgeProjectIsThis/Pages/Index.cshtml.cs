@@ -94,7 +94,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
                 }
             }
 
-            if (string.IsNullOrEmpty(ProjectSearchField) && !couldParseProjectId)
+            if (string.IsNullOrEmpty(ProjectSearchField) || !couldParseProjectId)
             {
                 ErrorMessage = "You need to enter a valid project id to lookup the project.";
                 return Page();
