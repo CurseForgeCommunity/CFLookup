@@ -25,7 +25,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
         public string Category { get; set; }
         public string Slug { get; set; }
 
-        public CurseForge.APIClient.Models.Mods.Mod? FoundMod { get; set; }
+        public Mod? FoundMod { get; set; }
 
         public CFEmbedModel(ILogger<IndexModel> logger, ApiClient cfApiClient, ConnectionMultiplexer connectionMultiplexer)
         {

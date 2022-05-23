@@ -111,25 +111,25 @@
     }
     else
     {
-        <meta property="og:title" content="What CurseForge Project Is This?" />
+        <meta property="og:title" content="CFLookup / What CurseForge Project Is This?" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://wcfpit.nolifeking85.tv/" />
-        <meta name="description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
-        <meta property="og:description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
-        <meta name="twitter:description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
+        <meta property="og:url" content="https://cflookup.com/" />
+        <meta name="description" content="CFLookup / What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
+        <meta property="og:description" content="CFLookup / What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
+        <meta name="twitter:description" content="CFLookup / What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
         <meta name="twitter:site" content="@@NoLifeKing85">
     }
 }
 
     <div class="text-center">
-        <h1 class="display-4">What CurseForge Project Is This?</h1>
+        <h1 class="display-4">CFLookup / What CurseForge Project Is This?</h1>
         <form href="/" asp-page="Index" method="post">
             <label class="form-label" for="projectSearchField">Enter the project id, and we'll try to look it up for you!</label>
             <div class="row justify-content-center">
                 <div class="col-md-6">
                     <div class="input-group mb-3">
                         <label class="input-group-text" for="projectSearchField">Project Id</label>
-                        <input type="number" class="form-control text-center" id="projectSearchField" asp-for="ProjectSearchField" placeholder="Project Id (project-<number>)" />
+                        <input type="text" class="form-control text-center" id="projectSearchField" asp-for="ProjectSearchField" placeholder="Project Id (project-<number>)" />
                         <button type="submit" class="btn btn-secondary">Search project</button>
                     </div>
                 </div>
