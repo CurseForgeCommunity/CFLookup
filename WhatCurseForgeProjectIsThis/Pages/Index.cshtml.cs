@@ -1,5 +1,7 @@
 ﻿using CurseForge.APIClient;
 using CurseForge.APIClient.Models;
+using CurseForge.APIClient.Models.Games;
+using CurseForge.APIClient.Models.Mods;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Newtonsoft.Json;
@@ -21,7 +23,9 @@ namespace WhatCurseForgeProjectIsThis.Pages
         public string FileSearchField { get; set; } = string.Empty;
         public string ErrorMessage { get; set; } = string.Empty;
 
-        public CurseForge.APIClient.Models.Mods.Mod? FoundMod { get; set; }
+        public Mod? FoundMod { get; set; }
+
+        public Dictionary<string, (Game game, Category category, List<Mod> mods)> FoundMods { get; set; }
 
         readonly Regex modsTomlRegex = new(@"displayName=""(.*?)""", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -96,13 +100,121 @@ namespace WhatCurseForgeProjectIsThis.Pages
 
             if (string.IsNullOrEmpty(ProjectSearchField) || !couldParseProjectId)
             {
-                ErrorMessage = "You need to enter a valid project id to lookup the project.";
-                return Page();
+                if (!string.IsNullOrWhiteSpace(ProjectSearchField))
+                {
+                    var slugProjects = await TryToFindSlug(ProjectSearchField);
+                    if (slugProjects.Count == 0)
+                    {
+                        ErrorMessage = "You need to enter a valid project id or slug to lookup the project. (We found nothing)";
+                        return Page();
+                    }
+                    else if (slugProjects.Count == 1)
+                    {
+                        foreach (var gameMods in slugProjects)
+                        {
+                            if (gameMods.Value.mods.Count == 1)
+                            {
+                                projectId = gameMods.Value.mods[0].Id;
+                            }
+                            else
+                            {
+                                FoundMods = slugProjects;
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        FoundMods = slugProjects;
+                    }
+
+                    if (FoundMods != null)
+                    {
+                        return Page();
+                    }
+                }
+                else
+                {
+                    ErrorMessage = "You need to enter a valid project id to lookup the project.";
+                    return Page();
+                }
             }
 
             await SearchModAsync(projectId);
 
             return Page();
+        }
+
+        private async Task<Dictionary<string, (Game game, Category category, List<Mod> mods)>> TryToFindSlug(string slug)
+        {
+            var returnValue = new Dictionary<string, (Game game, Category category, List<Mod> mods)>();
+            var gameClasses = new Dictionary<Game, List<Category>>();
+            var games = await GetGameInfo();
+
+            foreach (var game in games)
+            {
+                var classes = (await GetCategoryInfo(game.Id)).Where(c => c.IsClass ?? false).ToList() ?? new List<Category>();
+                gameClasses.Add(game, classes);
+            }
+
+            var sortedList = gameClasses.OrderByDescending(c => c.Key.Id == 432 || c.Key.Id == 1);
+
+            var cachedSlugSearch = await _redis.StringGetAsync($"cf-slug-search-{slug}");
+
+            if (!cachedSlugSearch.IsNullOrEmpty)
+            {
+                return JsonConvert.DeserializeObject<Dictionary<string, (Game game, Category category, List<Mod> mods)>>(cachedSlugSearch);
+            }
+
+            foreach (var kv in sortedList)
+            {
+                foreach (var cat in kv.Value)
+                {
+                    var modSearch = await _cfApiClient.SearchModsAsync(kv.Key.Id, cat.Id, slug: slug);
+                    if (modSearch.Data.Count > 0)
+                    {
+                        if (!returnValue.ContainsKey($"{kv.Key.Id}-{cat.Id}"))
+                        {
+                            returnValue.Add($"{kv.Key.Id}-{cat.Id}", (kv.Key, cat, new List<Mod>()));
+                        }
+
+                        returnValue[$"{kv.Key.Id}-{cat.Id}"].mods.AddRange(modSearch.Data);
+                    }
+                    await Task.Delay(25);
+                }
+            }
+
+            await _redis.StringSetAsync($"cf-slug-search-{slug}", JsonConvert.SerializeObject(returnValue), TimeSpan.FromMinutes(5));
+
+            return returnValue;
+        }
+        private async Task<List<Game>> GetGameInfo()
+        {
+            var cachedGames = await _redis.StringGetAsync("cf-games");
+
+            if (!cachedGames.IsNullOrEmpty)
+            {
+                return JsonConvert.DeserializeObject<List<Game>>(cachedGames);
+            }
+
+            var games = await _cfApiClient.GetGamesAsync();
+            await _redis.StringSetAsync("cf-games", JsonConvert.SerializeObject(games.Data), TimeSpan.FromMinutes(5));
+            return games.Data;
+        }
+
+        private async Task<List<Category>> GetCategoryInfo(int gameId)
+        {
+            var cachedCategories = await _redis.StringGetAsync($"cf-categories-id-{gameId}");
+
+            if (!cachedCategories.IsNullOrEmpty)
+            {
+                return JsonConvert.DeserializeObject<List<Category>>(cachedCategories);
+            }
+
+            var categories = await _cfApiClient.GetCategoriesAsync(gameId);
+            await _redis.StringSetAsync($"cf-categories-id-{gameId}", JsonConvert.SerializeObject(categories.Data), TimeSpan.FromMinutes(5));
+            await Task.Delay(25);
+            return categories.Data;
         }
 
         private async Task<int?> SearchModFileAsync(long fileId)

@@ -21,9 +21,9 @@ namespace WhatCurseForgeProjectIsThis.Pages
         public string FileSearchField { get; set; } = string.Empty;
         public string ErrorMessage { get; set; } = string.Empty;
 
-        public string Game { get; set; }
-        public string Category { get; set; }
-        public string Slug { get; set; }
+        public string? Game { get; set; }
+        public string? Category { get; set; }
+        public string? Slug { get; set; }
 
         public Mod? FoundMod { get; set; }
 
@@ -133,7 +133,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
             var gameId = gameInfo.FirstOrDefault(x => x.Slug.Equals(game, StringComparison.InvariantCultureIgnoreCase))?.Id;
 
             var categories = await _cfApiClient.GetCategoriesAsync(gameId);
-            await _redis.StringSetAsync("cf-categories", JsonConvert.SerializeObject(categories.Data), TimeSpan.FromMinutes(5));
+            await _redis.StringSetAsync($"cf-categories-{game}", JsonConvert.SerializeObject(categories.Data), TimeSpan.FromMinutes(5));
 
             return categories.Data;
         }

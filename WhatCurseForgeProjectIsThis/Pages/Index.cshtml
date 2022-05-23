@@ -61,11 +61,11 @@
                 var modFile = Model.FoundMod.LatestFiles.FirstOrDefault(f => f.Id == file.FileId);
                 if (modFile?.IsAvailable ?? false)
                 {
-                    if(!string.IsNullOrWhiteSpace(file.GameVersion))
+                    if (!string.IsNullOrWhiteSpace(file.GameVersion))
                     {
                         gameVersionList.Add(file.GameVersion);
                     }
-                    if(!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
+                    if (!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
                     {
                         modloaderList.Add(file.ModLoader?.ToString());
                     }
@@ -128,8 +128,8 @@
             <div class="row justify-content-center">
                 <div class="col-md-6">
                     <div class="input-group mb-3">
-                        <label class="input-group-text" for="projectSearchField">Project Id</label>
-                        <input type="text" class="form-control text-center" id="projectSearchField" asp-for="ProjectSearchField" placeholder="Project Id (project-<number>)" />
+                        <label class="input-group-text" for="projectSearchField">Project Id / Slug</label>
+                        <input type="text" class="form-control text-center" id="projectSearchField" asp-for="ProjectSearchField" placeholder="Project Id / Slug (project-<number>)" />
                         <button type="submit" class="btn btn-secondary">Search project</button>
                     </div>
                 </div>
@@ -149,7 +149,7 @@
                 </div>
             </div>
         </form>
-        @if (Model.FoundMod == null)
+        @if (Model.FoundMod == null && Model.FoundMods == null)
     {
         if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
         {
@@ -160,6 +160,49 @@
                     </div>
                 </div>
             </div>
+        }
+    }
+    else if(Model.FoundMod == null && Model.FoundMods != null)
+    {
+        <hr />
+        <h2>Found multiple results for your query <kbd>@Model.ProjectSearchField</kbd></h2>
+        var modsGroupedByGame = Model.FoundMods.GroupBy(k => k.Value.game).ToList();
+        foreach(var game in modsGroupedByGame)
+        {
+            var gameInfo = game.Key;
+            foreach(var modCollection in game)
+            {
+                var mods = modCollection.Value.mods;
+                <div class="mb-3 row justify-content-start">
+                    <div class="col-md-12 text-start">
+                        <h3><img src="@gameInfo.Assets.IconUrl" alt="Game icon: @gameInfo.Name" /> @gameInfo.Name <span class="badge bg-secondary">@modCollection.Value.category.Name</span></h3>
+                    </div>
+                </div>
+                foreach(var mod in mods)
+                {
+                    <div class="row justify-content-start text-start">
+                        <div class="ps-5 col-md-12">
+                            <h4>
+                            @if (mod.Logo != null && !string.IsNullOrWhiteSpace(mod.Logo.ThumbnailUrl))
+                            {
+                                <img src="@mod.Logo.ThumbnailUrl" style="width: 32px;" alt="Project logotype" />
+                            }
+                            @if (mod.Links != null && !string.IsNullOrWhiteSpace(mod.Links.WebsiteUrl))
+                            {
+                                <a href="@mod.Links.WebsiteUrl" class="text-white" target="_blank">@mod.Name</a> <i class="bi bi-box-arrow-up-right"></i>
+                            }
+                            else
+                            {
+                                @mod.Name
+                            }
+                            <span class="badge bg-secondary ms-4">Project Id: <a class="text-white" href="@Url.PageLink($"/Index", values: new { projectId = mod.Id }, protocol: "https")">@mod.Id</a></span>
+                            </h4>
+                            <span class="text-muted">@mod.Summary</span>
+                        </div>
+                    </div>
+                }
+                <hr class="mb-5" />
+            }
         }
     }
     else
