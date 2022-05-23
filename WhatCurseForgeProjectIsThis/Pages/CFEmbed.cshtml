@@ -16,6 +16,59 @@
 <meta name="twitter:card" content="summary" />
     @if (Model.FoundMod != null)
     {
+        var summaryText = new System.Text.StringBuilder();
+var haveExtraLinebreak = false;
+summaryText.AppendLine(Model.FoundMod.Summary);
+
+if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.IssuesUrl))
+{
+    summaryText.AppendLine();
+    summaryText.AppendLine($"Issues: {Model.FoundMod.Links.IssuesUrl}");
+    haveExtraLinebreak = true;
+}
+
+if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.WikiUrl))
+{
+    if (!haveExtraLinebreak)
+    {
+        summaryText.AppendLine();
+        haveExtraLinebreak = true;
+    }
+    summaryText.AppendLine($"Wiki/Docs: {Model.FoundMod.Links.WikiUrl}");
+}
+
+if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
+{
+    if (!haveExtraLinebreak)
+    {
+        summaryText.AppendLine();
+        haveExtraLinebreak = true;
+    }
+    summaryText.AppendLine($"Source: {Model.FoundMod.Links.SourceUrl}");
+}
+
+if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
+{
+    var gameVersions = string.Join(", ", Model.FoundMod.LatestFilesIndexes.Where(f => !string.IsNullOrWhiteSpace(f.GameVersion)).Select(f => f.GameVersion).Distinct());
+    var modLoaders = string.Join(", ", Model.FoundMod.LatestFilesIndexes.Where(f => !string.IsNullOrWhiteSpace(f.ModLoader?.ToString())).Select(f => f.ModLoader.ToString()).Distinct());
+
+    if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
+    {
+        summaryText.AppendLine();
+        haveExtraLinebreak = true;
+    }
+
+    if (!string.IsNullOrWhiteSpace(gameVersions))
+    {
+        summaryText.AppendLine($"Game version(s): {gameVersions}");
+    }
+
+    if (!string.IsNullOrWhiteSpace(modLoaders))
+    {
+        summaryText.AppendLine($"Modloader(s): {modLoaders}");
+    }
+}
+
 <meta property="og:title" content="@Model.FoundMod.Name" />
 <meta name="twitter:title" content="@Model.FoundMod.Name" />
         if (Model.FoundMod.Links != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Links.WebsiteUrl))
@@ -29,9 +82,9 @@
 <meta property="og:image:height" content="256" />
 <meta name="twitter:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
         }
-<meta name="description" content="@Model.FoundMod.Summary" />
-<meta property="og:description" content="@Model.FoundMod.Summary" />
-<meta name="twitter:description" content="@Model.FoundMod.Summary" />
+<meta name="description" content="@summaryText.ToString().Trim()" />
+<meta property="og:description" content="@summaryText.ToString().Trim()" />
+<meta name="twitter:description" content="@summaryText.ToString().Trim()" />
 <meta name="twitter:site" content="@@CurseForge">
     }
     else

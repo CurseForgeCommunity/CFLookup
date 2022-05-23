@@ -1,6 +1,8 @@
 ﻿@page "{projectId:int?}"
 @using System.Web
+@using Microsoft.AspNetCore.Html
 @using Microsoft.AspNetCore.Http.Extensions
+@using Newtonsoft.Json
 @model IndexModel
 @{
     ViewData["Title"] = "What?";
@@ -18,6 +20,59 @@
     <meta name="twitter:card" content="summary" />
     @if (Model.FoundMod != null)
     {
+        var summaryText = new System.Text.StringBuilder();
+        var haveExtraLinebreak = false;
+        summaryText.AppendLine(Model.FoundMod.Summary);
+
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.IssuesUrl))
+        {
+            summaryText.AppendLine();
+            summaryText.AppendLine($"Issues: {Model.FoundMod.Links.IssuesUrl}");
+            haveExtraLinebreak = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.WikiUrl))
+        {
+            if (!haveExtraLinebreak)
+            {
+                summaryText.AppendLine();
+                haveExtraLinebreak = true;
+            }
+            summaryText.AppendLine($"Wiki/Docs: {Model.FoundMod.Links.WikiUrl}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
+        {
+            if (!haveExtraLinebreak)
+            {
+                summaryText.AppendLine();
+                haveExtraLinebreak = true;
+            }
+            summaryText.AppendLine($"Source: {Model.FoundMod.Links.SourceUrl}");
+        }
+
+        if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
+        {
+            var gameVersions = string.Join(", ", Model.FoundMod.LatestFilesIndexes.Where(f => !string.IsNullOrWhiteSpace(f.GameVersion)).Select(f => f.GameVersion).Distinct());
+            var modLoaders = string.Join(", ", Model.FoundMod.LatestFilesIndexes.Where(f => !string.IsNullOrWhiteSpace(f.ModLoader?.ToString())).Select(f => f.ModLoader.ToString()).Distinct());
+
+            if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
+            {
+                summaryText.AppendLine();
+                haveExtraLinebreak = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(gameVersions))
+            {
+                summaryText.AppendLine($"Game version(s): {gameVersions}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(modLoaders))
+            {
+                summaryText.AppendLine($"Modloader(s): {modLoaders}");
+            }
+        }
+
         <meta property="og:title" content="@Model.FoundMod.Name" />
         <meta name="twitter:title" content="@Model.FoundMod.Name" />
         if (Model.FoundMod.Links != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Links.WebsiteUrl))
@@ -31,9 +86,9 @@
             <meta property="og:image:height" content="256" />
             <meta name="twitter:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
         }
-        <meta name="description" content="@Model.FoundMod.Summary" />
-        <meta name="og:description" content="@Model.FoundMod.Summary" />
-        <meta name="twitter:description" content="@Model.FoundMod.Summary" />
+        <meta name="description" content="@summaryText.ToString().Trim()" />
+        <meta property="og:description" content="@summaryText.ToString().Trim()" />
+        <meta name="twitter:description" content="@summaryText.ToString().Trim()" />
         <meta name="twitter:site" content="@@CurseForge">
     }
     else
@@ -42,41 +97,41 @@
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://wcfpit.nolifeking85.tv/" />
         <meta name="description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
-        <meta name="og:description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
+        <meta property="og:description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
         <meta name="twitter:description" content="What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
         <meta name="twitter:site" content="@@NoLifeKing85">
     }
 }
 
-<div class="text-center">
-    <h1 class="display-4">What CurseForge Project Is This?</h1>
-    <form href="/" asp-page="Index" method="post">
-        <label class="form-label" for="projectSearchField">Enter the project id, and we'll try to look it up for you!</label>
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="input-group mb-3">
-                    <label class="input-group-text" for="projectSearchField">Project Id</label>
-                    <input type="number" class="form-control text-center" id="projectSearchField" asp-for="ProjectSearchField" placeholder="Project Id (project-<number>)" />
-                    <button type="submit" class="btn btn-secondary">Search project</button>
+    <div class="text-center">
+        <h1 class="display-4">What CurseForge Project Is This?</h1>
+        <form href="/" asp-page="Index" method="post">
+            <label class="form-label" for="projectSearchField">Enter the project id, and we'll try to look it up for you!</label>
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="input-group mb-3">
+                        <label class="input-group-text" for="projectSearchField">Project Id</label>
+                        <input type="number" class="form-control text-center" id="projectSearchField" asp-for="ProjectSearchField" placeholder="Project Id (project-<number>)" />
+                        <button type="submit" class="btn btn-secondary">Search project</button>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="input-group mb-3">
-                    <label class="input-group-text" for="fileSearchField">File Id</label>
-                    <input type="number" class="form-control text-center" id="fileSearchField" asp-for="FileSearchField" placeholder="File Id" />
-                    <button type="submit" class="btn btn-secondary">Search file</button>
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="input-group mb-3">
+                        <label class="input-group-text" for="fileSearchField">File Id</label>
+                        <input type="number" class="form-control text-center" id="fileSearchField" asp-for="FileSearchField" placeholder="File Id" />
+                        <button type="submit" class="btn btn-secondary">Search file</button>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <p class="text-muted"><em>This tool is primarly focused on helping you find what mods that are deleted, and cannot be used in CurseForge.</em></p>
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <p class="text-muted"><em>This tool is primarly focused on helping you find what mods that are deleted, and cannot be used in CurseForge.</em></p>
+                </div>
             </div>
-        </div>
-    </form>
-    @if (Model.FoundMod == null)
+        </form>
+        @if (Model.FoundMod == null)
     {
         if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
         {
@@ -144,6 +199,42 @@
                         </tr>
                     </tbody>
                 </table>
+                @if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
+                {
+                    <table class="table table-striped table-dark text-start table-bordered caption-top">
+                        <caption>Latest version information</caption>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Release type</th>
+                                @if (Model.FoundMod.GameId == 432)
+                                {
+                                    <th>Modloader</th>
+                                }
+                                <th>Game version</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var file in Model.FoundMod.LatestFilesIndexes)
+                            {
+                                var modFile = Model.FoundMod.LatestFiles.FirstOrDefault(f => f.Id == file.FileId);
+                                if (modFile?.IsAvailable ?? false)
+                                {
+                                    <tr>
+                                        <td>@file.Filename</td>
+                                        <td>@file.ReleaseType</td>
+                                        @if (Model.FoundMod.GameId == 432)
+                                        {
+                                            <td>@(file.ModLoader.HasValue ? new HtmlString(file.ModLoader.ToString()) : Html.Raw("<i>Unknown</i>"))</td>
+                                        }
+                                        <td>@file.GameVersion</td>
+                                        <td><div class="cf-install-button" title="Install with CurseForge"><a href="curseforge://install?addonId=@Model.FoundMod.Id&fileId=@file.FileId" target="_blank">Install</a></div></td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                }
                 @if (Model.FoundMod.Screenshots?.Count > 0)
                 {
                     <div class="carousel slide" data-bs-ride="carousel" id="screenshots">
