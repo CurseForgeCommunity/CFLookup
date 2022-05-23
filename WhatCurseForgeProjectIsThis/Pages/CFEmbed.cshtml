@@ -49,8 +49,26 @@ if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
 
 if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
 {
-    var gameVersions = string.Join(", ", Model.FoundMod.LatestFilesIndexes.Where(f => !string.IsNullOrWhiteSpace(f.GameVersion)).Select(f => f.GameVersion).Distinct());
-    var modLoaders = string.Join(", ", Model.FoundMod.LatestFilesIndexes.Where(f => !string.IsNullOrWhiteSpace(f.ModLoader?.ToString())).Select(f => f.ModLoader.ToString()).Distinct());
+    var gameVersionList = new List<string>();
+    var modloaderList = new List<string>();
+
+    foreach (var file in Model.FoundMod.LatestFilesIndexes)
+    {
+        var modFile = Model.FoundMod.LatestFiles.FirstOrDefault(f => f.Id == file.FileId);
+        if (modFile?.IsAvailable ?? false)
+        {
+            if(!string.IsNullOrWhiteSpace(file.GameVersion))
+            {
+                gameVersionList.Add(file.GameVersion);
+            }
+            if(!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
+            {
+                modloaderList.Add(file.ModLoader?.ToString());
+            }
+        }
+    }
+    var gameVersions = string.Join(", ", gameVersionList.Distinct());
+    var modLoaders = string.Join(", ", modloaderList.Distinct());
 
     if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
     {
