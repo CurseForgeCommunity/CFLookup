@@ -4,11 +4,13 @@
     ViewData["Title"] = "What?";
 
     var permLink = string.Empty;
+    var oembedLink = string.Empty;
 
     if (Model.FoundMod != null)
     {
         ViewData["Title"] = Model.FoundMod.Name;
         permLink = Url.PageLink($"/CFEmbed", values: new { game = Model.Game, category = Model.Category, slug = Model.Slug }, protocol: "https");
+        oembedLink = Url.PageLink("/Index", values: new { projectId = "" }, protocol: "https") + $"api/oembed/{Model.FoundMod.Id}.oembed.json";
     }
 }
 
@@ -126,6 +128,7 @@
 <meta property="og:description" content="@summaryText.ToString().Trim()" />
 <meta name="twitter:description" content="@summaryText.ToString().Trim()" />
 <meta name="twitter:site" content="@@CurseForge">
+<link type="application/json+oembed" href="@oembedLink" />
     }
     else
     {

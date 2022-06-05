@@ -26,6 +26,8 @@ builder.Services.Configure<GzipCompressionProviderOptions>(options =>
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+builder.Services.AddControllers();
+
 builder.Services.AddSingleton<ConnectionMultiplexer>(ConnectionMultiplexer.Connect("127.0.0.1:6379"));
 
 builder.Services.AddScoped<CurseForge.APIClient.ApiClient>(options =>
@@ -62,5 +64,7 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapRazorPages();
+
+app.MapDefaultControllerRoute();
 
 app.Run();
