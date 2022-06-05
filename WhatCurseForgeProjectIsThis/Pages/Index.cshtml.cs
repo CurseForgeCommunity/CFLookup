@@ -50,7 +50,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
                 await SearchModAsync(projectId.Value);
             }
 
-            IsDiscord = Request.Headers.UserAgent.Any(ua => ua.Contains("Discordbot"));
+            IsDiscord = false; //Request.Headers.UserAgent.Any(ua => ua.Contains("Discordbot"));
 
             if (rcf.HasValue && rcf.Value)
             {

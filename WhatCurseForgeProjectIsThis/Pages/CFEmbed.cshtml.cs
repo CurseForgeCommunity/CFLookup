@@ -50,7 +50,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
             Category = category;
             Slug = slug;
 
-            IsDiscord = Request.Headers.UserAgent.Any(ua => ua.Contains("Discordbot"));
+            IsDiscord = false; //Request.Headers.UserAgent.Any(ua => ua.Contains("Discordbot"));
 
             try
             {
