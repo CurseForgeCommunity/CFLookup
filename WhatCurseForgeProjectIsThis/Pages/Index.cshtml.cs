@@ -108,6 +108,22 @@ namespace WhatCurseForgeProjectIsThis.Pages
             {
                 if (!string.IsNullOrWhiteSpace(ProjectSearchField))
                 {
+                    if (Uri.TryCreate(ProjectSearchField, UriKind.Absolute, out var url))
+                    {
+                        if (url.Host.EndsWith("cflookup.com") || url.Host.EndsWith("curseforge.com"))
+                        {
+                            if (url.Segments.Length > 0)
+                            {
+                                ProjectSearchField = url.Segments.Last();
+                            }
+                        }
+                        else
+                        {
+                            ErrorMessage = "Not a valid URL, only CurseForge domains are valid";
+                            return Page();
+                        }
+                    }
+
                     var slugProjects = await TryToFindSlug(ProjectSearchField);
                     if (slugProjects.Count == 0)
                     {
