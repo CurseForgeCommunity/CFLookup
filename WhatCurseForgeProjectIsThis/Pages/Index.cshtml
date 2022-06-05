@@ -131,7 +131,7 @@ if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
         <meta property="og:description" content="@summaryText.ToString().Trim()" />
         <meta name="twitter:description" content="@summaryText.ToString().Trim()" />
         <meta name="twitter:site" content="@@CurseForge">
-        <link type="application/json+oembed" href="@oembedLink" />
+        <link rel="alternate" type="application/json+oembed" href="@oembedLink" title="@Model.FoundMod.Name" />
     }
     else
     {
