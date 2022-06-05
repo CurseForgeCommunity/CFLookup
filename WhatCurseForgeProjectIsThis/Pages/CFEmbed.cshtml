@@ -17,75 +17,96 @@
     @if (Model.FoundMod != null)
     {
         var summaryText = new System.Text.StringBuilder();
-var haveExtraLinebreak = false;
-summaryText.AppendLine(Model.FoundMod.Summary);
+        var haveExtraLinebreak = false;
+        summaryText.AppendLine(Model.FoundMod.Summary);
 
-if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.IssuesUrl))
-{
-    summaryText.AppendLine();
-    summaryText.AppendLine($"Issues: {Model.FoundMod.Links.IssuesUrl}");
-    haveExtraLinebreak = true;
-}
-
-if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.WikiUrl))
-{
-    if (!haveExtraLinebreak)
-    {
-        summaryText.AppendLine();
-        haveExtraLinebreak = true;
-    }
-    summaryText.AppendLine($"Wiki/Docs: {Model.FoundMod.Links.WikiUrl}");
-}
-
-if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
-{
-    if (!haveExtraLinebreak)
-    {
-        summaryText.AppendLine();
-        haveExtraLinebreak = true;
-    }
-    summaryText.AppendLine($"Source: {Model.FoundMod.Links.SourceUrl}");
-}
-
-if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
-{
-    var gameVersionList = new List<string>();
-    var modloaderList = new List<string>();
-
-    foreach (var file in Model.FoundMod.LatestFilesIndexes)
-    {
-        var modFile = Model.FoundMod.LatestFiles.FirstOrDefault(f => f.Id == file.FileId);
-        if (modFile?.IsAvailable ?? false)
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.IssuesUrl))
         {
-            if(!string.IsNullOrWhiteSpace(file.GameVersion))
+            summaryText.AppendLine();
+            if(Model.IsDiscord)
             {
-                gameVersionList.Add(file.GameVersion);
+                summaryText.Append($"[Issues]({Model.FoundMod.Links.IssuesUrl}) ");
             }
-            if(!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
+            else
             {
-                modloaderList.Add(file.ModLoader?.ToString());
+                summaryText.AppendLine($"Issues: {Model.FoundMod.Links.IssuesUrl}");
+                haveExtraLinebreak = true;
             }
         }
-    }
-    var gameVersions = string.Join(", ", gameVersionList.Distinct());
-    var modLoaders = string.Join(", ", modloaderList.Distinct());
 
-    if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
-    {
-        summaryText.AppendLine();
-        haveExtraLinebreak = true;
-    }
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.WikiUrl))
+        {
+            if(Model.IsDiscord)
+            {
+                summaryText.Append($"[Wiki/Docs]({Model.FoundMod.Links.WikiUrl}) ");
+            }
+            else
+            {
+                if (!haveExtraLinebreak)
+                {
+                    summaryText.AppendLine();
+                    haveExtraLinebreak = true;
+                }
+                summaryText.AppendLine($"Wiki/Docs: {Model.FoundMod.Links.WikiUrl}");
+            }
+        }
 
-    if (!string.IsNullOrWhiteSpace(gameVersions))
-    {
-        summaryText.AppendLine($"Game version(s): {gameVersions}");
-    }
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
+        {
+            if(Model.IsDiscord)
+            {
+                summaryText.Append($"[Source]({Model.FoundMod.Links.SourceUrl}) ");
+            }
+            else
+            {
+                if (!haveExtraLinebreak)
+                {
+                    summaryText.AppendLine();
+                    haveExtraLinebreak = true;
+                }
+                summaryText.AppendLine($"Source: {Model.FoundMod.Links.SourceUrl}");
+            }
+        }
 
-    if (!string.IsNullOrWhiteSpace(modLoaders))
-    {
-        summaryText.AppendLine($"Modloader(s): {modLoaders}");
-    }
-}
+        if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
+        {
+            var gameVersionList = new List<string>();
+            var modloaderList = new List<string>();
+
+            foreach (var file in Model.FoundMod.LatestFilesIndexes)
+            {
+                var modFile = Model.FoundMod.LatestFiles.FirstOrDefault(f => f.Id == file.FileId);
+                if (modFile?.IsAvailable ?? true)
+                {
+                    if(!string.IsNullOrWhiteSpace(file.GameVersion))
+                    {
+                        gameVersionList.Add(file.GameVersion);
+                    }
+                    if(!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
+                    {
+                        modloaderList.Add(file.ModLoader?.ToString());
+                    }
+                }
+            }
+            var gameVersions = string.Join(", ", gameVersionList.Distinct());
+            var modLoaders = string.Join(", ", modloaderList.Distinct());
+
+            if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
+            {
+                summaryText.AppendLine();
+                haveExtraLinebreak = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(gameVersions))
+            {
+                summaryText.AppendLine($"Game version(s): {gameVersions}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(modLoaders))
+            {
+                summaryText.AppendLine($"Modloader(s): {modLoaders}");
+            }
+        }
 
 <meta property="og:title" content="@Model.FoundMod.Name" />
 <meta name="twitter:title" content="@Model.FoundMod.Name" />

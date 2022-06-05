@@ -50,6 +50,8 @@ namespace WhatCurseForgeProjectIsThis.Pages
                 await SearchModAsync(projectId.Value);
             }
 
+            IsDiscord = Request.Headers.UserAgent.Any(ua => ua.Contains("Discordbot"));
+
             if (rcf.HasValue && rcf.Value)
             {
                 if (FoundMod != null)
@@ -67,6 +69,8 @@ namespace WhatCurseForgeProjectIsThis.Pages
             }
         }
 
+        public bool IsDiscord { get; set; } = false;
+
         internal string[] IgnoredUserAgentsForRedirect = new[]
         {
            "Twitterbot",
@@ -80,6 +84,8 @@ namespace WhatCurseForgeProjectIsThis.Pages
             var couldParseFileId = long.TryParse(FileSearchField, out var fileId);
 
             var couldParseProjectId = int.TryParse(ProjectSearchField, out int projectId);
+
+            IsDiscord = Request.Headers.UserAgent.Any(ua => ua.Contains("Discordbot"));
 
             if (couldParseFileId)
             {
