@@ -63,6 +63,10 @@ namespace WhatCurseForgeProjectIsThis.Pages
                         return Redirect($"https://www.curseforge.com/{game}/{category}/{slug}");
                     }
                 }
+                else
+                {
+                    FoundMod = searchForSlug;
+                }
 
                 if (FoundMod?.Links != null && !string.IsNullOrWhiteSpace(FoundMod.Links.WebsiteUrl))
                 {
