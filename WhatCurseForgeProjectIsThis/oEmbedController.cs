@@ -1,6 +1,5 @@
 ﻿using CurseForge.APIClient;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using StackExchange.Redis;
 
 namespace WhatCurseForgeProjectIsThis
@@ -21,7 +20,7 @@ namespace WhatCurseForgeProjectIsThis
         [HttpGet("{projectId}.oembed.json")]
         public async Task<IActionResult> OEmbedResultAsync(int projectId)
         {
-            var mod = await SearchModAsync(projectId);
+            var mod = await SharedMethods.SearchModAsync(_redis, _cfApiClient, projectId);
 
             if (mod == null)
             {
@@ -40,6 +39,11 @@ namespace WhatCurseForgeProjectIsThis
                 { "height", 400 }
             };
 
+            if (!string.IsNullOrWhiteSpace(mod.Links?.WebsiteUrl))
+            {
+                oembed.Add("url", mod.Links?.WebsiteUrl);
+            }
+
             if (mod.Logo != null && !string.IsNullOrWhiteSpace(mod.Logo.ThumbnailUrl))
             {
                 oembed.Add("thumbnail_url", mod.Logo.ThumbnailUrl);
@@ -55,7 +59,6 @@ namespace WhatCurseForgeProjectIsThis
             {
                 summaryText.AppendLine();
                 summaryText.Append($"<a href=\"{mod.Links.IssuesUrl}\" target=\"_blank\">Issues</a> ");
-
             }
 
             if (!string.IsNullOrWhiteSpace(mod.Links?.WikiUrl))
@@ -111,47 +114,6 @@ namespace WhatCurseForgeProjectIsThis
             oembed.Add("html", summaryText.ToString().Trim().ReplaceLineEndings("<br />\n"));
 
             return new JsonResult(oembed);
-        }
-
-        private async Task<CurseForge.APIClient.Models.Mods.Mod?> SearchModAsync(int projectId)
-        {
-            var modResultCache = await _redis.StringGetAsync($"cf-mod-{projectId}");
-            if (!modResultCache.IsNull)
-            {
-                if (modResultCache == "empty")
-                {
-                    return null;
-                }
-
-                return JsonConvert.DeserializeObject<CurseForge.APIClient.Models.Mods.Mod>(modResultCache); ;
-            }
-
-            try
-            {
-                var modResult = await _cfApiClient.GetModAsync(projectId);
-
-                if (modResult.Data.Name == $"project-{projectId}" && modResult.Data.LatestFiles.Count > 0)
-                {
-                    var projectName = GetProjectNameFromFile(modResult.Data.LatestFiles.OrderByDescending(m => m.FileDate).First().DownloadUrl);
-                    // Replace the project name with the filename for the projects latest available file
-                    modResult.Data.Name = projectName;
-                }
-
-                var modJson = JsonConvert.SerializeObject(modResult.Data);
-
-                await _redis.StringSetAsync($"cf-mod-{projectId}", modJson, TimeSpan.FromMinutes(5));
-
-                return modResult.Data;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        private string GetProjectNameFromFile(string url)
-        {
-            return Path.GetFileName(url);
         }
     }
 }
