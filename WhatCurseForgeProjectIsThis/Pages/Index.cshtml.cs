@@ -41,13 +41,13 @@ namespace WhatCurseForgeProjectIsThis.Pages
             if (fileId.HasValue)
             {
                 FileSearchField = fileId.Value.ToString();
-                projectId = await SearchModFileAsync(fileId.Value);
+                projectId = await SharedMethods.SearchModFileAsync(_redis, _cfApiClient, fileId.Value);
             }
 
             if (projectId.HasValue)
             {
                 ProjectSearchField = projectId.Value.ToString();
-                await SearchModAsync(projectId.Value);
+                FoundMod = await SharedMethods.SearchModAsync(_redis, _cfApiClient, projectId.Value);
             }
 
             IsDiscord = false; //Request.Headers.UserAgent.Any(ua => ua.Contains("Discordbot"));
@@ -82,14 +82,13 @@ namespace WhatCurseForgeProjectIsThis.Pages
         public async Task<IActionResult> OnPostAsync()
         {
             var couldParseFileId = long.TryParse(FileSearchField, out var fileId);
-
-            var couldParseProjectId = int.TryParse(ProjectSearchField, out int projectId);
+            var couldParseProjectId = int.TryParse(ProjectSearchField, out var projectId);
 
             IsDiscord = Request.Headers.UserAgent.Any(ua => ua.Contains("Discordbot"));
 
             if (couldParseFileId)
             {
-                var tmpProjectId = await SearchModFileAsync(fileId);
+                var tmpProjectId = await SharedMethods.SearchModFileAsync(_redis, _cfApiClient, fileId);
 
                 if (tmpProjectId.HasValue)
                 {
@@ -112,9 +111,25 @@ namespace WhatCurseForgeProjectIsThis.Pages
                     {
                         if (url.Host.EndsWith("cflookup.com") || url.Host.EndsWith("curseforge.com"))
                         {
-                            if (url.Segments.Length > 0)
+                            if (url.Segments.Length > 0 && url.Segments.Length >= 4)
                             {
-                                ProjectSearchField = url.Segments.Last();
+                                var game = url.Segments[1].TrimEnd('/');
+                                var classId = url.Segments[2].TrimEnd('/');
+                                var slug = url.Segments[3].TrimEnd('/');
+
+                                var gameInfo = await SharedMethods.GetGameInfo(_redis, _cfApiClient);
+                                var categoryInfo = await SharedMethods.GetCategoryInfo(_redis, _cfApiClient, gameInfo, game);
+
+                                var foundMod = await SharedMethods.SearchForSlug(_redis, _cfApiClient, gameInfo, categoryInfo, game, classId, slug);
+
+                                if (foundMod == null)
+                                {
+                                    ErrorMessage = "Could not find a project for that URL";
+                                    return Page();
+                                }
+
+                                FoundMod = foundMod;
+                                return Page();
                             }
                         }
                         else
@@ -162,7 +177,12 @@ namespace WhatCurseForgeProjectIsThis.Pages
                 }
             }
 
-            await SearchModAsync(projectId);
+            FoundMod = await SharedMethods.SearchModAsync(_redis, _cfApiClient, projectId);
+
+            if (FoundMod == null)
+            {
+                ErrorMessage = "Could not find the project";
+            }
 
             return Page();
         }
@@ -171,11 +191,11 @@ namespace WhatCurseForgeProjectIsThis.Pages
         {
             var returnValue = new Dictionary<string, (Game game, Category category, List<Mod> mods)>();
             var gameClasses = new Dictionary<Game, List<Category>>();
-            var games = await GetGameInfo();
+            var games = await SharedMethods.GetGameInfo(_redis, _cfApiClient);
 
             foreach (var game in games)
             {
-                var classes = (await GetCategoryInfo(game.Id)).Where(c => c.IsClass ?? false).ToList() ?? new List<Category>();
+                var classes = (await SharedMethods.GetCategoryInfo(_redis, _cfApiClient, game.Id)).Where(c => c.IsClass ?? false).ToList() ?? new List<Category>();
                 gameClasses.Add(game, classes);
             }
 
@@ -209,121 +229,6 @@ namespace WhatCurseForgeProjectIsThis.Pages
             await _redis.StringSetAsync($"cf-slug-search-{slug}", JsonConvert.SerializeObject(returnValue), TimeSpan.FromMinutes(5));
 
             return returnValue;
-        }
-        private async Task<List<Game>> GetGameInfo()
-        {
-            var cachedGames = await _redis.StringGetAsync("cf-games");
-
-            if (!cachedGames.IsNullOrEmpty)
-            {
-                return JsonConvert.DeserializeObject<List<Game>>(cachedGames);
-            }
-
-            var games = await _cfApiClient.GetGamesAsync();
-            await _redis.StringSetAsync("cf-games", JsonConvert.SerializeObject(games.Data), TimeSpan.FromMinutes(5));
-            return games.Data;
-        }
-
-        private async Task<List<Category>> GetCategoryInfo(int gameId)
-        {
-            var cachedCategories = await _redis.StringGetAsync($"cf-categories-id-{gameId}");
-
-            if (!cachedCategories.IsNullOrEmpty)
-            {
-                return JsonConvert.DeserializeObject<List<Category>>(cachedCategories);
-            }
-
-            var categories = await _cfApiClient.GetCategoriesAsync(gameId);
-            await _redis.StringSetAsync($"cf-categories-id-{gameId}", JsonConvert.SerializeObject(categories.Data), TimeSpan.FromMinutes(5));
-            await Task.Delay(25);
-            return categories.Data;
-        }
-
-        private async Task<int?> SearchModFileAsync(long fileId)
-        {
-            ErrorMessage = string.Empty;
-            var modResultCache = await _redis.StringGetAsync($"cf-file-{fileId}");
-            if (!modResultCache.IsNull)
-            {
-                if (modResultCache == "empty")
-                {
-                    ErrorMessage = "File not found, or problems with the query. Try again later.";
-                    FoundMod = null;
-                    return null;
-                }
-
-                var obj = JsonConvert.DeserializeObject<GenericListResponse<CurseForge.APIClient.Models.Files.File>>(modResultCache);
-
-                if (obj?.Data.Count > 0)
-                {
-                    return obj.Data[0].ModId;
-                }
-            }
-
-            try
-            {
-                var modResult = await _cfApiClient.GetFilesAsync(new CurseForge.APIClient.Models.Files.GetModFilesRequestBody
-                {
-                    FileIds = new List<long> { fileId }
-                });
-
-                if (modResult.Data.Count > 0)
-                {
-                    var modJson = JsonConvert.SerializeObject(modResult);
-                    await _redis.StringSetAsync($"cf-file-{fileId}", modJson, TimeSpan.FromMinutes(5));
-
-                    return modResult.Data[0].ModId;
-                }
-
-                ErrorMessage = "File not found, or problems with the query. Try again later.";
-                return null;
-            }
-            catch
-            {
-                ErrorMessage = "File not found, or problems with the query. Try again later.";
-            }
-
-            return null;
-        }
-
-        private async Task SearchModAsync(int projectId)
-        {
-            ErrorMessage = string.Empty;
-            var modResultCache = await _redis.StringGetAsync($"cf-mod-{projectId}");
-            if (!modResultCache.IsNull)
-            {
-                if (modResultCache == "empty")
-                {
-                    ErrorMessage = "Project not found, or problems with the query. Try again later.";
-                    FoundMod = null;
-                    return;
-                }
-
-                FoundMod = JsonConvert.DeserializeObject<CurseForge.APIClient.Models.Mods.Mod>(modResultCache);
-                return;
-            }
-
-            try
-            {
-                var modResult = await _cfApiClient.GetModAsync(projectId);
-
-                if (modResult.Data.Name == $"project-{projectId}" && modResult.Data.LatestFiles.Count > 0)
-                {
-                    var projectName = await GetProjectNameFromFile(modResult.Data.LatestFiles.OrderByDescending(m => m.FileDate).First().DownloadUrl);
-                    // Replace the project name with the filename for the projects latest available file
-                    modResult.Data.Name = projectName;
-                }
-
-                var modJson = JsonConvert.SerializeObject(modResult.Data);
-
-                await _redis.StringSetAsync($"cf-mod-{projectId}", modJson, TimeSpan.FromMinutes(5));
-
-                FoundMod = modResult.Data;
-            }
-            catch
-            {
-                ErrorMessage = "Project not found, or problems with the query. Try again later.";
-            }
         }
 
         private async Task<string> GetProjectNameFromFile(string url)
