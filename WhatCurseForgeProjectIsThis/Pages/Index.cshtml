@@ -21,122 +21,122 @@
 @section Head {
     <meta name="twitter:card" content="summary">
     <meta property="og:type" content="website" />
-    @if (Model.FoundMod != null)
-    {
-        var summaryText = new System.Text.StringBuilder();
-var haveExtraLinebreak = false;
-summaryText.AppendLine(Model.FoundMod.Summary);
-
-if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.IssuesUrl))
-{
-    summaryText.AppendLine();
-    if(Model.IsDiscord)
-    {
-        summaryText.Append($"[Issues]({Model.FoundMod.Links.IssuesUrl}) ");
-    }
-    else
-    {
-        summaryText.AppendLine($"Issues: {Model.FoundMod.Links.IssuesUrl}");
-        haveExtraLinebreak = true;
-    }
-}
-
-if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.WikiUrl))
-{
-    if(Model.IsDiscord)
-    {
-        summaryText.Append($"[Wiki/Docs]({Model.FoundMod.Links.WikiUrl}) ");
-    }
-    else
-    {
-        if (!haveExtraLinebreak)
+        @if (Model.FoundMod != null)
         {
-            summaryText.AppendLine();
-            haveExtraLinebreak = true;
-        }
-        summaryText.AppendLine($"Wiki/Docs: {Model.FoundMod.Links.WikiUrl}");
-    }
-}
+            var summaryText = new System.Text.StringBuilder();
+            var haveExtraLinebreak = false;
+            summaryText.AppendLine(Model.FoundMod.Summary);
 
-if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
-{
-    if(Model.IsDiscord)
-    {
-        summaryText.Append($"[Source]({Model.FoundMod.Links.SourceUrl}) ");
-    }
-    else
-    {
-        if (!haveExtraLinebreak)
-        {
-            summaryText.AppendLine();
-            haveExtraLinebreak = true;
-        }
-        summaryText.AppendLine($"Source: {Model.FoundMod.Links.SourceUrl}");
-    }
-}
-
-if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
-{
-    var gameVersionList = new List<string>();
-    var modloaderList = new List<string>();
-
-    foreach (var file in Model.FoundMod.LatestFilesIndexes)
-    {
-        var modFile = Model.FoundMod.LatestFiles.FirstOrDefault(f => f.Id == file.FileId);
-        if (modFile?.IsAvailable ?? true)
-        {
-            if(!string.IsNullOrWhiteSpace(file.GameVersion))
+            if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.IssuesUrl))
             {
-                gameVersionList.Add(file.GameVersion);
+                summaryText.AppendLine();
+                if (Model.IsDiscord)
+                {
+                    summaryText.Append($"[Issues]({Model.FoundMod.Links.IssuesUrl}) ");
+                }
+                else
+                {
+                    summaryText.AppendLine($"Issues: {Model.FoundMod.Links.IssuesUrl}");
+                    haveExtraLinebreak = true;
+                }
             }
-            if(!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
+
+            if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.WikiUrl))
             {
-                modloaderList.Add(file.ModLoader?.ToString());
+                if (Model.IsDiscord)
+                {
+                    summaryText.Append($"[Wiki/Docs]({Model.FoundMod.Links.WikiUrl}) ");
+                }
+                else
+                {
+                    if (!haveExtraLinebreak)
+                    {
+                        summaryText.AppendLine();
+                        haveExtraLinebreak = true;
+                    }
+                    summaryText.AppendLine($"Wiki/Docs: {Model.FoundMod.Links.WikiUrl}");
+                }
             }
-        }
-    }
-    var gameVersions = string.Join(", ", gameVersionList.Distinct());
-    var modLoaders = string.Join(", ", modloaderList.Distinct());
 
-    if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
-    {
-        summaryText.AppendLine();
-        haveExtraLinebreak = true;
-    }
+            if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
+            {
+                if (Model.IsDiscord)
+                {
+                    summaryText.Append($"[Source]({Model.FoundMod.Links.SourceUrl}) ");
+                }
+                else
+                {
+                    if (!haveExtraLinebreak)
+                    {
+                        summaryText.AppendLine();
+                        haveExtraLinebreak = true;
+                    }
+                    summaryText.AppendLine($"Source: {Model.FoundMod.Links.SourceUrl}");
+                }
+            }
 
-    if (!string.IsNullOrWhiteSpace(gameVersions))
-    {
-        summaryText.AppendLine($"Game version(s): {gameVersions}");
-    }
+            if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
+            {
+                var gameVersionList = new List<string>();
+                var modloaderList = new List<string>();
 
-    if (!string.IsNullOrWhiteSpace(modLoaders))
-    {
-        summaryText.AppendLine($"Modloader(s): {modLoaders}");
-    }
-}
+                foreach (var file in Model.FoundMod.LatestFilesIndexes)
+                {
+                    var modFile = Model.FoundMod.LatestFiles.FirstOrDefault(f => f.Id == file.FileId);
+                    if (modFile?.IsAvailable ?? true)
+                    {
+                        if (!string.IsNullOrWhiteSpace(file.GameVersion))
+                        {
+                            gameVersionList.Add(file.GameVersion);
+                        }
+                        if (!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
+                        {
+                            modloaderList.Add(file.ModLoader?.ToString());
+                        }
+                    }
+                }
+                var gameVersions = string.Join(", ", gameVersionList.Distinct());
+                var modLoaders = string.Join(", ", modloaderList.Distinct());
+
+                if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
+                {
+                    summaryText.AppendLine();
+                    haveExtraLinebreak = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(gameVersions))
+                {
+                    summaryText.AppendLine($"Game version(s): {gameVersions}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(modLoaders))
+                {
+                    summaryText.AppendLine($"Modloader(s): {modLoaders}");
+                }
+            }
 
         <meta property="og:title" content="@Model.FoundMod.Name" />
         <meta name="twitter:title" content="@Model.FoundMod.Name" />
-        if (Model.FoundMod.Links != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Links.WebsiteUrl))
-        {
+            if (Model.FoundMod.Links != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Links.WebsiteUrl))
+            {
             <meta property="og:url" content="@Model.FoundMod.Links.WebsiteUrl" />
-        }
-        if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
-        {
+            }
+            if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
+            {
             <meta property="og:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
             <meta property="og:image:alt" content="Project logotype" />
             <meta property="og:image:width" content="256" />
             <meta property="og:image:height" content="256" />
             <meta name="twitter:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
-        }
+            }
         <meta name="description" content="@summaryText.ToString().Trim()" />
         <meta property="og:description" content="@summaryText.ToString().Trim()" />
         <meta name="twitter:description" content="@summaryText.ToString().Trim()" />
         <meta name="twitter:site" content="@@CurseForge">
         <link rel="alternate" type="application/json+oembed" href="@oembedLink" title="@Model.FoundMod.Name" />
-    }
-    else
-    {
+        }
+        else
+        {
         <meta property="og:title" content="CFLookup / What CurseForge Project Is This?" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://cflookup.com/" />
@@ -144,7 +144,7 @@ if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
         <meta property="og:description" content="CFLookup / What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
         <meta name="twitter:description" content="CFLookup / What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
         <meta name="twitter:site" content="@@NoLifeKing85">
-    }
+        }
 }
 
     <div class="text-center">
@@ -188,15 +188,15 @@ if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
             </div>
         }
     }
-    else if(Model.FoundMod == null && Model.FoundMods != null)
+    else if (Model.FoundMod == null && Model.FoundMods != null)
     {
         <hr />
         <h2>Found multiple results for your query <kbd>@Model.ProjectSearchField</kbd></h2>
         var modsGroupedByGame = Model.FoundMods.GroupBy(k => k.Value.game).ToList();
-        foreach(var game in modsGroupedByGame)
+        foreach (var game in modsGroupedByGame)
         {
             var gameInfo = game.Key;
-            foreach(var modCollection in game)
+            foreach (var modCollection in game)
             {
                 var mods = modCollection.Value.mods;
                 <div class="mb-3 row justify-content-start">
@@ -204,24 +204,24 @@ if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
                         <h3><img src="@gameInfo.Assets.IconUrl" alt="Game icon: @gameInfo.Name" /> @gameInfo.Name <span class="badge bg-secondary">@modCollection.Value.category.Name</span></h3>
                     </div>
                 </div>
-                foreach(var mod in mods)
+                foreach (var mod in mods)
                 {
                     <div class="row justify-content-start text-start">
                         <div class="ps-5 col-md-12">
                             <h4>
-                            @if (mod.Logo != null && !string.IsNullOrWhiteSpace(mod.Logo.ThumbnailUrl))
-                            {
-                                <img src="@mod.Logo.ThumbnailUrl" style="width: 32px;" alt="Project logotype" />
-                            }
-                            @if (mod.Links != null && !string.IsNullOrWhiteSpace(mod.Links.WebsiteUrl))
-                            {
-                                <a href="@mod.Links.WebsiteUrl" class="text-white" target="_blank">@mod.Name</a> <i class="bi bi-box-arrow-up-right"></i>
-                            }
-                            else
-                            {
-                                @mod.Name
-                            }
-                            <span class="badge bg-secondary ms-4">Project Id: <a class="text-white" href="@Url.PageLink($"/Index", values: new { projectId = mod.Id }, protocol: "https")">@mod.Id</a></span>
+                                @if (mod.Logo != null && !string.IsNullOrWhiteSpace(mod.Logo.ThumbnailUrl))
+                                {
+                                    <img src="@mod.Logo.ThumbnailUrl" style="width: 32px;" alt="Project logotype" />
+                                }
+                                @if (mod.Links != null && !string.IsNullOrWhiteSpace(mod.Links.WebsiteUrl))
+                                {
+                                    <a href="@mod.Links.WebsiteUrl" class="text-white" target="_blank">@mod.Name</a> <i class="bi bi-box-arrow-up-right"></i>
+                                }
+                                else
+                                {
+                                    @mod.Name
+                                }
+                                <span class="badge bg-secondary ms-4">Project Id: <a class="text-white" href="@Url.PageLink($"/Index", values: new { projectId = mod.Id }, protocol: "https")">@mod.Id</a></span>
                             </h4>
                             <span class="text-muted">@mod.Summary</span>
                         </div>
@@ -320,7 +320,11 @@ if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
                                             <td>@(file.ModLoader.HasValue ? new HtmlString(file.ModLoader.ToString()) : Html.Raw("<i>Unknown</i>"))</td>
                                         }
                                         <td>@file.GameVersion</td>
-                                        <td><div class="cf-install-button" title="Install with CurseForge"><a href="curseforge://install?addonId=@Model.FoundMod.Id&fileId=@file.FileId" target="_blank">Install</a></div></td>
+                                        <td>
+                                            <div class="cf-install-button" title="Install with CurseForge">
+                                                <a href="curseforge://install?addonId=@Model.FoundMod.Id&fileId=@file.FileId" target="_blank">Install</a>
+                                            </div>
+                                        </td>
                                         @if (Model.FoundMod.ClassId == 4471)
                                         {
                                             <td><div class="cf-install-button" title="Validate modpack (Check if 3rd party can install it)"><a href="@Url.PageLink("ValidateManifest", values: new { projectId = Model.FoundMod.Id, fileId = file.FileId }, protocol: "https")">Validate</a></div></td>

@@ -72,7 +72,7 @@ namespace WhatCurseForgeProjectIsThis
             {
                 var modResult = await _cfApiClient.GetModAsync(projectId);
 
-                if (modResult.Data.Name == $"project-{projectId}" && modResult.Data.LatestFiles.Count > 0)
+                /*if (modResult.Data.Name == $"project-{projectId}" && modResult.Data.LatestFiles.Count > 0)
                 {
                     var file = modResult.Data.LatestFiles.OrderByDescending(m => m.FileDate).First();
                     var projectName = GetProjectNameFromFile(file.DownloadUrl);
@@ -82,7 +82,7 @@ namespace WhatCurseForgeProjectIsThis
                     }
                     // Replace the project name with the filename for the projects latest available file
                     modResult.Data.Name = projectName;
-                }
+                }*/
 
                 var modJson = JsonConvert.SerializeObject(modResult.Data);
 
