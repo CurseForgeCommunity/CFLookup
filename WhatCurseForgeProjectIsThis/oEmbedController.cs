@@ -44,12 +44,12 @@ namespace WhatCurseForgeProjectIsThis
                 oembed.Add("url", mod.Links?.WebsiteUrl);
             }
 
-            /*if (mod.Logo != null && !string.IsNullOrWhiteSpace(mod.Logo.ThumbnailUrl))
+            if (mod.Logo != null && !string.IsNullOrWhiteSpace(mod.Logo.ThumbnailUrl))
             {
                 oembed.Add("thumbnail_url", mod.Logo.ThumbnailUrl);
                 oembed.Add("thumbnail_width", 256);
                 oembed.Add("thumbnail_height", 256);
-            }*/
+            }
 
             var summaryText = new System.Text.StringBuilder();
             var haveExtraLinebreak = false;
