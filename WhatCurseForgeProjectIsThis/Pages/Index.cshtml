@@ -19,6 +19,7 @@
 }
 
 @section Head {
+    <meta name="twitter:card" content="summary">
     @if (Model.FoundMod != null)
     {
         var summaryText = new System.Text.StringBuilder();
@@ -125,7 +126,6 @@ if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
             <meta property="og:image:width" content="256" />
             <meta property="og:image:height" content="256" />
             <meta name="twitter:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
-            <meta name="twitter:card" content="summary">
         }
         <meta name="description" content="@summaryText.ToString().Trim()" />
         <meta property="og:description" content="@summaryText.ToString().Trim()" />
