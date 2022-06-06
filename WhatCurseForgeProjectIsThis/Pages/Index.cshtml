@@ -327,7 +327,14 @@
                                         </td>
                                         @if (Model.FoundMod.ClassId == 4471)
                                         {
-                                            <td><div class="cf-install-button" title="Validate modpack (Check if 3rd party can install it)"><a href="@Url.PageLink("ValidateManifest", values: new { projectId = Model.FoundMod.Id, fileId = file.FileId }, protocol: "https")">Validate</a></div></td>
+                                            <td>
+                                                @if (Model.FoundMod.Status == CurseForge.APIClient.Models.Mods.ModStatus.Approved)
+                                                {
+                                                    <div class="cf-install-button" title="Validate modpack (Check if 3rd party can install it)">
+                                                        <a href="@Url.PageLink("ValidateManifest", values: new { projectId = Model.FoundMod.Id, fileId = file.FileId }, protocol: "https")">Validate</a>
+                                                    </div>
+                                                }
+                                            </td>
                                         }
                                     </tr>
                                 }
