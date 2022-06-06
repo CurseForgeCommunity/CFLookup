@@ -40,7 +40,7 @@ namespace WhatCurseForgeProjectIsThis
             return categories.Data;
         }
 
-        public static async Task<List<Category>> GetCategoryInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, int gameId)
+        public static async Task<List<Category>> GetCategoryInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, uint gameId)
         {
             var cachedCategories = await _redis.StringGetAsync($"cf-categories-id-{gameId}");
 
@@ -55,7 +55,7 @@ namespace WhatCurseForgeProjectIsThis
             return categories.Data;
         }
 
-        public static async Task<Mod?> SearchModAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int projectId)
+        public static async Task<Mod?> SearchModAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, uint projectId)
         {
             var modResultCache = await _redis.StringGetAsync($"cf-mod-{projectId}");
             if (!modResultCache.IsNull)
@@ -91,7 +91,7 @@ namespace WhatCurseForgeProjectIsThis
             }
         }
 
-        public static async Task<int?> SearchModFileAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, long fileId)
+        public static async Task<uint?> SearchModFileAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, uint fileId)
         {
             var modResultCache = await _redis.StringGetAsync($"cf-file-{fileId}");
             if (!modResultCache.IsNull)
@@ -113,7 +113,7 @@ namespace WhatCurseForgeProjectIsThis
             {
                 var modResult = await _cfApiClient.GetFilesAsync(new CurseForge.APIClient.Models.Files.GetModFilesRequestBody
                 {
-                    FileIds = new List<long> { fileId }
+                    FileIds = new List<uint> { fileId }
                 });
 
                 if (modResult.Data.Count > 0)

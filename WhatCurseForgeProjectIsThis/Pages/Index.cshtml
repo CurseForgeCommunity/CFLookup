@@ -236,7 +236,7 @@ if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
         <hr />
         @if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
         {
-            <img src="@Model.FoundMod.Logo.ThumbnailUrl" alt="Project logotype" />
+            <img src="@Model.FoundMod.Logo.ThumbnailUrl" loading="lazy" alt="Project logotype" />
         }
         @if (Model.FoundMod.Links != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Links.WebsiteUrl))
         {
@@ -299,6 +299,11 @@ if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
                                     <th>Modloader</th>
                                 }
                                 <th>Game version</th>
+                                <th>&nbsp;</th>
+                                @if (Model.FoundMod.ClassId == 4471)
+                                {
+                                    <th>Validate</th>
+                                }
                             </tr>
                         </thead>
                         <tbody>
@@ -316,6 +321,10 @@ if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
                                         }
                                         <td>@file.GameVersion</td>
                                         <td><div class="cf-install-button" title="Install with CurseForge"><a href="curseforge://install?addonId=@Model.FoundMod.Id&fileId=@file.FileId" target="_blank">Install</a></div></td>
+                                        @if (Model.FoundMod.ClassId == 4471)
+                                        {
+                                            <td><div class="cf-install-button" title="Validate modpack (Check if 3rd party can install it)"><a href="@Url.PageLink("ValidateManifest", values: new { projectId = Model.FoundMod.Id, fileId = file.FileId }, protocol: "https")">Validate</a></div></td>
+                                        }
                                     </tr>
                                 }
                             }

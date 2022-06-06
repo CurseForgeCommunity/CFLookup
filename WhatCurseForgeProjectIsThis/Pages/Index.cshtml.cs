@@ -36,7 +36,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
             _redis = connectionMultiplexer.GetDatabase(5);
         }
 
-        public async Task OnGet(int? projectId = null, long? fileId = null, bool? rcf = false)
+        public async Task OnGet(uint? projectId = null, uint? fileId = null, bool? rcf = false)
         {
             if (fileId.HasValue)
             {
@@ -81,8 +81,8 @@ namespace WhatCurseForgeProjectIsThis.Pages
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var couldParseFileId = long.TryParse(FileSearchField, out var fileId);
-            var couldParseProjectId = int.TryParse(ProjectSearchField, out var projectId);
+            var couldParseFileId = uint.TryParse(FileSearchField, out var fileId);
+            var couldParseProjectId = uint.TryParse(ProjectSearchField, out var projectId);
 
             IsDiscord = Request.Headers.UserAgent.Any(ua => ua.Contains("Discordbot"));
 
