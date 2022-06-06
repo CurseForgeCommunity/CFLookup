@@ -74,7 +74,12 @@ namespace WhatCurseForgeProjectIsThis
 
                 if (modResult.Data.Name == $"project-{projectId}" && modResult.Data.LatestFiles.Count > 0)
                 {
-                    var projectName = GetProjectNameFromFile(modResult.Data.LatestFiles.OrderByDescending(m => m.FileDate).First().DownloadUrl);
+                    var file = modResult.Data.LatestFiles.OrderByDescending(m => m.FileDate).First();
+                    var projectName = GetProjectNameFromFile(file.DownloadUrl);
+                    if (string.IsNullOrWhiteSpace(projectName))
+                    {
+                        projectName = file.DisplayName;
+                    }
                     // Replace the project name with the filename for the projects latest available file
                     modResult.Data.Name = projectName;
                 }
