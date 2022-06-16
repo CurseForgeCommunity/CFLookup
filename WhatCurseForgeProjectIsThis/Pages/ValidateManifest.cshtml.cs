@@ -130,7 +130,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
                 }
             }
 
-            var unavailableMods = projectMods.Data.Where(m => (m.AllowModDistribution ?? true) == false).ToList();
+            var unavailableMods = projectMods.Data.Where(m => (m.AllowModDistribution ?? true) == false || !m.IsAvailable).ToList();
 
             foreach (var mod in unavailableMods)
             {
