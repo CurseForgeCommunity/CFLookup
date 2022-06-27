@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Newtonsoft.Json;
 using StackExchange.Redis;
+using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
 
@@ -25,7 +26,7 @@ namespace WhatCurseForgeProjectIsThis.Pages
 
         public Mod? FoundMod { get; set; }
 
-        public Dictionary<string, (Game game, Category category, List<Mod> mods)> FoundMods { get; set; }
+        public ConcurrentDictionary<string, (Game game, Category category, List<Mod> mods)> FoundMods { get; set; }
 
         readonly Regex modsTomlRegex = new(@"displayName=""(.*?)""", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -187,17 +188,19 @@ namespace WhatCurseForgeProjectIsThis.Pages
             return Page();
         }
 
-        private async Task<Dictionary<string, (Game game, Category category, List<Mod> mods)>> TryToFindSlug(string slug)
+        private async Task<ConcurrentDictionary<string, (Game game, Category category, List<Mod> mods)>> TryToFindSlug(string slug)
         {
-            var returnValue = new Dictionary<string, (Game game, Category category, List<Mod> mods)>();
-            var gameClasses = new Dictionary<Game, List<Category>>();
+            var returnValue = new ConcurrentDictionary<string, (Game game, Category category, List<Mod> mods)>();
+            var gameClasses = new ConcurrentDictionary<Game, List<Category>>();
             var games = await SharedMethods.GetGameInfo(_redis, _cfApiClient);
 
-            foreach (var game in games)
+            var gameClassTasks = games.Select(async game =>
             {
                 var classes = (await SharedMethods.GetCategoryInfo(_redis, _cfApiClient, game.Id)).Where(c => c.IsClass ?? false).ToList() ?? new List<Category>();
-                gameClasses.Add(game, classes);
-            }
+                gameClasses.TryAdd(game, classes);
+            });
+
+            await Task.WhenAll(gameClassTasks);
 
             var sortedList = gameClasses.OrderByDescending(c => c.Key.Id == 432 || c.Key.Id == 1);
 
@@ -205,26 +208,36 @@ namespace WhatCurseForgeProjectIsThis.Pages
 
             if (!cachedSlugSearch.IsNullOrEmpty)
             {
-                return JsonConvert.DeserializeObject<Dictionary<string, (Game game, Category category, List<Mod> mods)>>(cachedSlugSearch);
+                return JsonConvert.DeserializeObject<ConcurrentDictionary<string, (Game game, Category category, List<Mod> mods)>>(cachedSlugSearch);
             }
 
-            foreach (var kv in sortedList)
+            var keyTasks = sortedList.Select(async kv =>
             {
-                foreach (var cat in kv.Value)
+                var gameCategoryTasks = kv.Value.Select(async cat =>
                 {
-                    var modSearch = await _cfApiClient.SearchModsAsync(kv.Key.Id, cat.Id, slug: slug);
-                    if (modSearch.Data.Count > 0)
+                    try
                     {
-                        if (!returnValue.ContainsKey($"{kv.Key.Id}-{cat.Id}"))
+                        var modSearch = await _cfApiClient.SearchModsAsync(kv.Key.Id, cat.Id, slug: slug);
+                        if (modSearch.Data.Count > 0)
                         {
-                            returnValue.Add($"{kv.Key.Id}-{cat.Id}", (kv.Key, cat, new List<Mod>()));
-                        }
+                            if (!returnValue.ContainsKey($"{kv.Key.Id}-{cat.Id}"))
+                            {
+                                returnValue.TryAdd($"{kv.Key.Id}-{cat.Id}", (kv.Key, cat, new List<Mod>()));
+                            }
 
-                        returnValue[$"{kv.Key.Id}-{cat.Id}"].mods.AddRange(modSearch.Data);
+                            returnValue[$"{kv.Key.Id}-{cat.Id}"].mods.AddRange(modSearch.Data);
+                        }
                     }
-                    await Task.Delay(25);
-                }
-            }
+                    catch
+                    {
+                        // Empty, because.. yeah
+                    }
+                });
+
+                await Task.WhenAll(gameCategoryTasks);
+            });
+
+            await Task.WhenAll(keyTasks);
 
             await _redis.StringSetAsync($"cf-slug-search-{slug}", JsonConvert.SerializeObject(returnValue), TimeSpan.FromMinutes(5));
 
