@@ -4,6 +4,8 @@ using CurseForge.APIClient.Models.Games;
 using CurseForge.APIClient.Models.Mods;
 using Newtonsoft.Json;
 using StackExchange.Redis;
+using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 
 namespace WhatCurseForgeProjectIsThis
 {
@@ -174,6 +176,73 @@ namespace WhatCurseForgeProjectIsThis
             }
 
             return null;
+        }
+
+        public static async Task<ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, uint>>> GetMinecraftModStatistics(IDatabaseAsync _redis, ApiClient _cfApiClient)
+        {
+            var cachedResponse = await _redis.StringGetAsync("cf-mcmod-stats");
+            if (!cachedResponse.IsNullOrEmpty)
+            {
+                if (cachedResponse == "empty")
+                {
+                    return null;
+                }
+
+                var cachedMod = JsonConvert.DeserializeObject<ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, uint>>>(cachedResponse);
+
+                return cachedMod;
+            }
+
+            var mcVersionModCount = new ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, uint>>();
+
+            var gameVersionTypes = await _cfApiClient.GetGameVersionTypesAsync(432);
+
+            var minecraftVersions = gameVersionTypes.Data
+                .Where(gvt => gvt.Slug.StartsWith("minecraft-") && !gvt.Slug.EndsWith("beta"))
+                .OrderBy(gvt => Regex.Replace(gvt.Slug, "\\d+", m => m.Value.PadLeft(10, '0'))).ToList();
+
+            var gameVersions = await _cfApiClient.GetGameVersionsAsync(432);
+
+            var filteredVersions = gameVersions.Data.Where(gv => minecraftVersions.Any(mv => mv.Id == gv.Type)).ToDictionary(gv => gv.Type, gv => gv.Versions);
+
+            var modLoaders = new[] {
+                ModLoaderType.Forge,
+                ModLoaderType.Fabric,
+                ModLoaderType.Quilt
+            };
+
+            var versionTasks = minecraftVersions.Select(async mcVersion =>
+            {
+                var subTasks = filteredVersions[mcVersion.Id].Select(async subVersion =>
+                {
+                    var loaderTasks = modLoaders.Select(async modloader =>
+                    {
+                        var cfSearch = await _cfApiClient.SearchModsAsync(432, 6, gameVersion: subVersion, modLoaderType: modloader, pageSize: 1);
+
+                        if (!mcVersionModCount.ContainsKey(mcVersion.Name))
+                        {
+                            mcVersionModCount[mcVersion.Name] = new ConcurrentDictionary<ModLoaderType, uint>();
+                        }
+
+                        if (!mcVersionModCount[mcVersion.Name].ContainsKey(modloader))
+                        {
+                            mcVersionModCount[mcVersion.Name][modloader] = 0;
+                        }
+
+                        mcVersionModCount[mcVersion.Name][modloader] += cfSearch.Pagination.TotalCount;
+                    });
+
+                    await Task.WhenAll(loaderTasks);
+                });
+
+                await Task.WhenAll(subTasks);
+            });
+
+            await Task.WhenAll(versionTasks);
+
+            await _redis.StringSetAsync("cf-mcmod-stats", JsonConvert.SerializeObject(mcVersionModCount), TimeSpan.FromHours(1));
+
+            return mcVersionModCount;
         }
 
         public static string GetProjectNameFromFile(string url)
