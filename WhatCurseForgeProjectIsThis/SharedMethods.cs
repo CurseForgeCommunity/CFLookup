@@ -180,7 +180,7 @@ namespace WhatCurseForgeProjectIsThis
 
         public static async Task<ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, uint>>> GetMinecraftModStatistics(IDatabaseAsync _redis, ApiClient _cfApiClient)
         {
-            var cachedResponse = await _redis.StringGetAsync("cf-mcmod-stats-v2");
+            var cachedResponse = await _redis.StringGetAsync("cf-mcmod-stats");
             if (!cachedResponse.IsNullOrEmpty)
             {
                 if (cachedResponse == "empty")
@@ -209,8 +209,6 @@ namespace WhatCurseForgeProjectIsThis
                 ModLoaderType.Forge,
                 ModLoaderType.Fabric,
                 ModLoaderType.Quilt,
-                ModLoaderType.LiteLoader,
-                ModLoaderType.Cauldron
             };
 
             var versionTasks = minecraftVersions.Select(async mcVersion =>
@@ -242,7 +240,7 @@ namespace WhatCurseForgeProjectIsThis
 
             await Task.WhenAll(versionTasks);
 
-            await _redis.StringSetAsync("cf-mcmod-stats-v2", JsonConvert.SerializeObject(mcVersionModCount), TimeSpan.FromHours(1));
+            await _redis.StringSetAsync("cf-mcmod-stats", JsonConvert.SerializeObject(mcVersionModCount), TimeSpan.FromHours(1));
 
             return mcVersionModCount;
         }

@@ -14,8 +14,8 @@
 
         function drawMinecraftChart() {
             var data = google.visualization.arrayToDataTable([
-                ['Modloader', 'Forge', 'Fabric', 'Quilt', 'LiteLoader', 'Cauldron', { role: 'annotation' }],
-        @Html.Raw(string.Join(",\n\t\t", modData.Select(i => $"['{i.Key.Replace("Minecraft ", "")}', {i.Value[ModLoaderType.Forge]}, {i.Value[ModLoaderType.Fabric]}, {i.Value[ModLoaderType.Quilt]}, {i.Value[ModLoaderType.LiteLoader]}, {i.Value[ModLoaderType.Cauldron]}, '']")))
+                ['Modloader', 'Forge', 'Fabric', 'Quilt', { role: 'annotation' }],
+        @Html.Raw(string.Join(",\n\t\t", modData.Select(i => $"['{i.Key.Replace("Minecraft ", "")}', {i.Value[ModLoaderType.Forge]}, {i.Value[ModLoaderType.Fabric]}, {i.Value[ModLoaderType.Quilt]}, '']")))
                     ]);
 
             var options = {
@@ -61,11 +61,9 @@
             <th scope="col" class="text-end">Forge</th>
             <th scope="col" class="text-end">Fabric</th>
             <th scope="col" class="text-end">Quilt</th>
-            <th scope="col" class="text-end">LiteLoader</th>
-                <th scope="col" class="text-end">Cauldron</th>
         </tr>
     </thead>
     <tbody>
-            @Html.Raw(string.Join("\n", modData.Select(d => $"<tr><td scope=\"row\">{d.Key}</td><td class=\"text-end\">{d.Value[ModLoaderType.Forge].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Fabric].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Quilt].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.LiteLoader].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Cauldron].ToString("n0")}</td></tr>")))
+            @Html.Raw(string.Join("\n", modData.Select(d => $"<tr><td scope=\"row\">{d.Key}</td><td class=\"text-end\">{d.Value[ModLoaderType.Forge].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Fabric].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Quilt].ToString("n0")}</td></tr>")))
     </tbody>
 </table>
