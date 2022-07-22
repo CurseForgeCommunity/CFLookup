@@ -1,3 +1,4 @@
+using CFLookup.Models;
 using CurseForge.APIClient;
 using CurseForge.APIClient.Models.Files;
 using CurseForge.APIClient.Models.Mods;
@@ -6,9 +7,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Newtonsoft.Json;
 using System.IO.Compression;
 using System.Text;
-using WhatCurseForgeProjectIsThis.Models;
 
-namespace WhatCurseForgeProjectIsThis.Pages
+namespace CFLookup.Pages
 {
     public class ValidateManifestModel : PageModel
     {

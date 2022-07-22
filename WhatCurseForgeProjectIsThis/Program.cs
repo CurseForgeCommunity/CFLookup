@@ -28,9 +28,9 @@ builder.Services.AddRazorPages();
 
 builder.Services.AddControllers();
 
-builder.Services.AddSingleton<ConnectionMultiplexer>(ConnectionMultiplexer.Connect("127.0.0.1:6379"));
+builder.Services.AddSingleton(ConnectionMultiplexer.Connect("127.0.0.1:6379"));
 
-builder.Services.AddScoped<CurseForge.APIClient.ApiClient>(options =>
+builder.Services.AddScoped(options =>
 {
     var cfApiKey = Environment.GetEnvironmentVariable("CFAPI_Key");
     return new CurseForge.APIClient.ApiClient(cfApiKey, 201, "whatcfprojectisthat@nolifeking85.tv");

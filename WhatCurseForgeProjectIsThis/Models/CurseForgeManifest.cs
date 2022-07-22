@@ -1,4 +1,4 @@
-﻿namespace WhatCurseForgeProjectIsThis.Models
+﻿namespace CFLookup.Models
 {
     public class CurseForgeManifest
     {

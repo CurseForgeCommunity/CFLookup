@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using StackExchange.Redis;
 
-namespace WhatCurseForgeProjectIsThis
+namespace CFLookup
 {
     [Route("api/[controller]")]
     [ApiController]

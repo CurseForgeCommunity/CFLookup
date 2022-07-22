@@ -10,7 +10,7 @@ using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
 
-namespace WhatCurseForgeProjectIsThis.Pages
+namespace CFLookup.Pages
 {
     public class IndexModel : PageModel
     {

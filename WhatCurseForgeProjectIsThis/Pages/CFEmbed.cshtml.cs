@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using StackExchange.Redis;
 
-namespace WhatCurseForgeProjectIsThis.Pages
+namespace CFLookup.Pages
 {
     public class CFEmbedModel : PageModel
     {

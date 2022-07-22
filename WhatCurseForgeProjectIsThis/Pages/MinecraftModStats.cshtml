@@ -1,7 +1,7 @@
 ﻿@page
 @using System.Text.RegularExpressions
 @using CurseForge.APIClient.Models.Mods
-@model WhatCurseForgeProjectIsThis.Pages.MinecraftModStatsModel
+@model CFLookup.Pages.MinecraftModStatsModel
 @{
     ViewData["Title"] = "Minecraft mod stats";
     var modData = Model.MinecraftStats.OrderBy(gvt => Regex.Replace(gvt.Key, "\\d+", m => m.Value.PadLeft(10, '0')));

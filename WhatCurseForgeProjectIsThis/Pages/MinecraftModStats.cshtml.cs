@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using StackExchange.Redis;
 using System.Collections.Concurrent;
 
-namespace WhatCurseForgeProjectIsThis.Pages
+namespace CFLookup.Pages
 {
     public class MinecraftModStatsModel : PageModel
     {

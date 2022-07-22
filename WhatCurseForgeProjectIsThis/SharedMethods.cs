@@ -7,7 +7,7 @@ using StackExchange.Redis;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
-namespace WhatCurseForgeProjectIsThis
+namespace CFLookup
 {
     public static class SharedMethods
     {
