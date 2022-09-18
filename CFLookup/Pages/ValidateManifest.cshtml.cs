@@ -24,8 +24,11 @@ namespace CFLookup.Pages
 
         public List<Mod> ModpackMods { get; set; } = new List<Mod>();
 
-        public ValidateManifestModel(ApiClient cfApiClient)
+        readonly IHttpClientFactory _httpClientFactory;
+
+        public ValidateManifestModel(ApiClient cfApiClient, IHttpClientFactory httpClientFactory)
         {
+            _httpClientFactory = httpClientFactory;
             _cfApiClient = cfApiClient;
         }
 
@@ -48,7 +51,7 @@ namespace CFLookup.Pages
 
                 if (!string.IsNullOrWhiteSpace(dlFile.DownloadUrl))
                 {
-                    using var hc = new HttpClient();
+                    var hc = _httpClientFactory.CreateClient();
                     var fileBytes = await hc.GetByteArrayAsync(dlFile.DownloadUrl);
 
                     using var ms = new MemoryStream(fileBytes);
