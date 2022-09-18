@@ -23,6 +23,8 @@ builder.Services.Configure<GzipCompressionProviderOptions>(options =>
     options.Level = CompressionLevel.SmallestSize;
 });
 
+builder.Services.AddHttpClient();
+
 // Add services to the container.
 builder.Services.AddRazorPages();
 
