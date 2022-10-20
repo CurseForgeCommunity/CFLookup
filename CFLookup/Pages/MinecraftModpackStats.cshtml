@@ -1,0 +1,67 @@
+﻿@page
+@using System.Text.RegularExpressions
+@using CurseForge.APIClient.Models.Mods
+@model CFLookup.Pages.MinecraftModpackStatsModel
+@{
+    ViewData["Title"] = "Minecraft modpack stats";
+    var modData = Model.MinecraftStats.OrderBy(gvt => Regex.Replace(gvt.Key, "\\d+", m => m.Value.PadLeft(10, '0')));
+}
+@section Head {
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        google.charts.load('current', { packages: ['corechart'] });
+        google.charts.setOnLoadCallback(drawMinecraftChart);
+
+        function drawMinecraftChart() {
+            var data = google.visualization.arrayToDataTable([
+                               ['Game version', 'Modpacks', { role: 'annotation' }],
+       @Html.Raw(string.Join(",\n\t\t", modData.Select(i => $"['{i.Key.Replace("Minecraft ", "")}', {i.Value}, '']")))
+                   ]);
+
+            var options = {
+                title: 'Number of Minecraft modpacks per game version',
+                height: '700',
+                width: '100%',
+                isStacked: true,
+                legend: {
+                    position: 'bottom',
+                    textStyle: { color: '#6c757d' }
+                },
+                vAxis: {
+                    title: 'Minecraft game version',
+                    titleTextStyle: { color: '#6c757d' },
+                    textStyle: { color: '#6c757d' },
+                    gridlines: { color: '#787878' }
+                },
+                backgroundColor: { fill: 'transparent' },
+                titleTextStyle: {
+                    color: '#fff'
+                },
+                hAxis: {
+                    textStyle: { color: '#6c757d' },
+                    titleTextStyle: { color: '#6c757d' },
+                    gridlines: { color: '#787878' }
+                }
+            };
+
+            var chart = new google.visualization.BarChart(document.getElementById('minecraft-version-modloader'));
+
+            chart.draw(data, options);
+        }
+    </script>
+}
+
+    <div id="minecraft-version-modloader"></div>
+
+<hr />
+<table class="table table-dark table-striped table-condensed">
+    <thead>
+        <tr>
+            <th scope="col">Game version</th>
+            <th scope="col" class="text-end">Modpacks</th>
+        </tr>
+    </thead>
+    <tbody>
+            @Html.Raw(string.Join("\n", modData.Select(d => $"<tr><td scope=\"row\">{d.Key}</td><td class=\"text-end\">{d.Value.ToString("n0")}</td></tr>")))
+    </tbody>
+</table>

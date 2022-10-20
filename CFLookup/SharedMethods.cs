@@ -245,6 +245,57 @@ namespace CFLookup
             return mcVersionModCount;
         }
 
+        public static async Task<ConcurrentDictionary<string, uint>> GetMinecraftModpackStatistics(IDatabaseAsync _redis, ApiClient _cfApiClient)
+        {
+            var cachedResponse = await _redis.StringGetAsync("cf-mcmodpack-stats");
+            if (!cachedResponse.IsNullOrEmpty)
+            {
+                if (cachedResponse == "empty")
+                {
+                    return null;
+                }
+
+                var cachedMod = JsonConvert.DeserializeObject<ConcurrentDictionary<string, uint>>(cachedResponse);
+
+                return cachedMod;
+            }
+
+            var mcVersionModCount = new ConcurrentDictionary<string, uint>();
+
+            var gameVersionTypes = await _cfApiClient.GetGameVersionTypesAsync(432);
+
+            var minecraftVersions = gameVersionTypes.Data
+                .Where(gvt => gvt.Slug.StartsWith("minecraft-") && !gvt.Slug.EndsWith("beta"))
+                .OrderBy(gvt => Regex.Replace(gvt.Slug, "\\d+", m => m.Value.PadLeft(10, '0'))).ToList();
+
+            var gameVersions = await _cfApiClient.GetGameVersionsAsync(432);
+
+            var filteredVersions = gameVersions.Data.Where(gv => minecraftVersions.Any(mv => mv.Id == gv.Type)).ToDictionary(gv => gv.Type, gv => gv.Versions);
+
+            var versionTasks = minecraftVersions.Select(async mcVersion =>
+            {
+                var subTasks = filteredVersions[mcVersion.Id].Select(async subVersion =>
+                {
+                    var cfSearch = await _cfApiClient.SearchModsAsync(432, 4471, gameVersion: subVersion, pageSize: 1);
+
+                    if (!mcVersionModCount.ContainsKey(mcVersion.Name))
+                    {
+                        mcVersionModCount[mcVersion.Name] = 0;
+                    }
+
+                    mcVersionModCount[mcVersion.Name] += cfSearch.Pagination.TotalCount;
+                });
+
+                await Task.WhenAll(subTasks);
+            });
+
+            await Task.WhenAll(versionTasks);
+
+            await _redis.StringSetAsync("cf-mcmodpack-stats", JsonConvert.SerializeObject(mcVersionModCount), TimeSpan.FromHours(1));
+
+            return mcVersionModCount;
+        }
+
         public static string GetProjectNameFromFile(string url)
         {
             return Path.GetFileName(url);
