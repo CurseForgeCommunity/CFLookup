@@ -12,7 +12,7 @@ namespace CFLookup.Pages
         private readonly ApiClient _cfApiClient;
         private readonly IDatabaseAsync _redis;
 
-        public ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, uint>> MinecraftStats = new ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, uint>>();
+        public ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, long>> MinecraftStats = new ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, long>>();
         public MinecraftModStatsModel(ApiClient cfApiClient, ConnectionMultiplexer connectionMultiplexer)
         {
             _cfApiClient = cfApiClient;

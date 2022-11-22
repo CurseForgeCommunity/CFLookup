@@ -42,7 +42,7 @@ namespace CFLookup
             return categories.Data;
         }
 
-        public static async Task<List<Category>> GetCategoryInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, uint gameId)
+        public static async Task<List<Category>> GetCategoryInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, int gameId)
         {
             var cachedCategories = await _redis.StringGetAsync($"cf-categories-id-{gameId}");
 
@@ -57,7 +57,7 @@ namespace CFLookup
             return categories.Data;
         }
 
-        public static async Task<Mod?> SearchModAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, uint projectId)
+        public static async Task<Mod?> SearchModAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int projectId)
         {
             var modResultCache = await _redis.StringGetAsync($"cf-mod-{projectId}");
             if (!modResultCache.IsNull)
@@ -98,7 +98,7 @@ namespace CFLookup
             }
         }
 
-        public static async Task<uint?> SearchModFileAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, uint fileId)
+        public static async Task<int?> SearchModFileAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int fileId)
         {
             var modResultCache = await _redis.StringGetAsync($"cf-file-{fileId}");
             if (!modResultCache.IsNull)
@@ -120,7 +120,7 @@ namespace CFLookup
             {
                 var modResult = await _cfApiClient.GetFilesAsync(new CurseForge.APIClient.Models.Files.GetModFilesRequestBody
                 {
-                    FileIds = new List<uint> { fileId }
+                    FileIds = new List<int> { fileId }
                 });
 
                 if (modResult.Data.Count > 0)
@@ -178,7 +178,7 @@ namespace CFLookup
             return null;
         }
 
-        public static async Task<ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, uint>>> GetMinecraftModStatistics(IDatabaseAsync _redis, ApiClient _cfApiClient)
+        public static async Task<ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, long>>> GetMinecraftModStatistics(IDatabaseAsync _redis, ApiClient _cfApiClient)
         {
             var cachedResponse = await _redis.StringGetAsync("cf-mcmod-stats");
             if (!cachedResponse.IsNullOrEmpty)
@@ -188,12 +188,12 @@ namespace CFLookup
                     return null;
                 }
 
-                var cachedMod = JsonConvert.DeserializeObject<ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, uint>>>(cachedResponse);
+                var cachedMod = JsonConvert.DeserializeObject<ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, long>>>(cachedResponse);
 
                 return cachedMod;
             }
 
-            var mcVersionModCount = new ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, uint>>();
+            var mcVersionModCount = new ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, long>>();
 
             var gameVersionTypes = await _cfApiClient.GetGameVersionTypesAsync(432);
 
@@ -221,7 +221,7 @@ namespace CFLookup
 
                         if (!mcVersionModCount.ContainsKey(mcVersion.Name))
                         {
-                            mcVersionModCount[mcVersion.Name] = new ConcurrentDictionary<ModLoaderType, uint>();
+                            mcVersionModCount[mcVersion.Name] = new ConcurrentDictionary<ModLoaderType, long>();
                         }
 
                         if (!mcVersionModCount[mcVersion.Name].ContainsKey(modloader))
@@ -245,7 +245,7 @@ namespace CFLookup
             return mcVersionModCount;
         }
 
-        public static async Task<ConcurrentDictionary<string, uint>> GetMinecraftModpackStatistics(IDatabaseAsync _redis, ApiClient _cfApiClient)
+        public static async Task<ConcurrentDictionary<string, long>> GetMinecraftModpackStatistics(IDatabaseAsync _redis, ApiClient _cfApiClient)
         {
             var cachedResponse = await _redis.StringGetAsync("cf-mcmodpack-stats");
             if (!cachedResponse.IsNullOrEmpty)
@@ -255,12 +255,12 @@ namespace CFLookup
                     return null;
                 }
 
-                var cachedMod = JsonConvert.DeserializeObject<ConcurrentDictionary<string, uint>>(cachedResponse);
+                var cachedMod = JsonConvert.DeserializeObject<ConcurrentDictionary<string, long>>(cachedResponse);
 
                 return cachedMod;
             }
 
-            var mcVersionModCount = new ConcurrentDictionary<string, uint>();
+            var mcVersionModCount = new ConcurrentDictionary<string, long>();
 
             var gameVersionTypes = await _cfApiClient.GetGameVersionTypesAsync(432);
 

@@ -3,7 +3,7 @@
     public class CurseForgeManifest
     {
         public string ManifestType { get; set; }
-        public uint ManifestVersion { get; set; }
+        public int ManifestVersion { get; set; }
         public string Name { get; set; }
         public string Version { get; set; }
         public string Author { get; set; }
@@ -13,8 +13,8 @@
 
     public class CurseForgeManifestFile
     {
-        public uint ProjectId { get; set; }
-        public uint FileId { get; set; }
+        public int ProjectId { get; set; }
+        public int FileId { get; set; }
         public bool Required { get; set; }
     }
 

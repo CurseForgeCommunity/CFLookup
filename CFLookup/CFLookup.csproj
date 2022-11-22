@@ -15,8 +15,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CurseForge.APIClient" Version="1.4.0" />
-    <PackageReference Include="StackExchange.Redis" Version="2.6.45" />
+    <PackageReference Include="CurseForge.APIClient" Version="2.0.1" />
+    <PackageReference Include="StackExchange.Redis" Version="2.6.70" />
   </ItemGroup>
 
   <ProjectExtensions><VisualStudio><UserProperties wwwroot_4manifest_1json__JsonSchema="https://json.schemastore.org/web-manifest-combined.json" /></VisualStudio></ProjectExtensions>

@@ -32,7 +32,7 @@ namespace CFLookup.Pages
             _cfApiClient = cfApiClient;
         }
 
-        public async Task<IActionResult> OnGet(uint projectId, uint fileId)
+        public async Task<IActionResult> OnGet(int projectId, int fileId)
         {
             var pro = await _cfApiClient.GetModAsync(projectId);
 
@@ -66,7 +66,7 @@ namespace CFLookup.Pages
 
                         Manifest = obj;
 
-                        var allowedDistribution = new Dictionary<uint, bool>();
+                        var allowedDistribution = new Dictionary<int, bool>();
 
                         var unavailableProjects = GetUnavailableProjectsAsync(_cfApiClient, obj.Files.Select(f => new FileDependency
                         {
@@ -100,7 +100,7 @@ namespace CFLookup.Pages
             return Page();
         }
 
-        public HashSet<uint> CheckedProjects = new();
+        public HashSet<int> CheckedProjects = new();
 
         public async IAsyncEnumerable<Mod> GetUnavailableProjectsAsync(ApiClient cfApiClient, List<FileDependency> files)
         {

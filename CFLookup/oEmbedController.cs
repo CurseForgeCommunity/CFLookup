@@ -18,7 +18,7 @@ namespace CFLookup
         }
 
         [HttpGet("{projectId}.oembed.json")]
-        public async Task<IActionResult> OEmbedResultAsync(uint projectId)
+        public async Task<IActionResult> OEmbedResultAsync(int projectId)
         {
             var mod = await SharedMethods.SearchModAsync(_redis, _cfApiClient, projectId);
 
