@@ -121,7 +121,30 @@ namespace CFLookup
                 type = 4,
                 data = new
                 {
-                    content = $"Project `{projectId.Value}` is: **[{mod.Name}]({mod.Links.WebsiteUrl})**"
+                    content = $"Project `{projectId.Value}` is: **[{mod.Name}](https://cflookup.com/{projectId.Value})**",
+                    components = new List<object> {
+                        new
+                        {
+                            type = 1,
+                            components = new List<object>
+                            {
+                                new
+                                {
+                                    type = 2,
+                                    style = 5,
+                                    label = "CFLookup",
+                                    url = $"https://cflookup.com/{projectId.Value}"
+                                },
+                                new
+                                {
+                                    type = 2,
+                                    style = 5,
+                                    label = "CurseForge",
+                                    url = mod.Links.WebsiteUrl
+                                }
+                            }
+                        }
+                    }
                 }
             };
         }
