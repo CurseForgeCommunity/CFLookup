@@ -116,6 +116,57 @@ namespace CFLookup
                 };
             }
 
+            var buttons = new List<object>
+            {
+                new
+                {
+                    type = 2,
+                    style = 5,
+                    label = "CFLookup",
+                    url = $"https://cflookup.com/{projectId.Value}"
+                },
+                new
+                {
+                    type = 2,
+                    style = 5,
+                    label = "CurseForge",
+                    url = mod.Links.WebsiteUrl
+                }
+            };
+
+            if (!string.IsNullOrWhiteSpace(mod.Links?.IssuesUrl))
+            {
+                buttons.Add(new
+                {
+                    type = 2,
+                    style = 5,
+                    label = "Issues",
+                    url = mod.Links.IssuesUrl
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(mod.Links?.WikiUrl))
+            {
+                buttons.Add(new
+                {
+                    type = 2,
+                    style = 5,
+                    label = "Wiki",
+                    url = mod.Links.WikiUrl
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(mod.Links?.SourceUrl))
+            {
+                buttons.Add(new
+                {
+                    type = 2,
+                    style = 5,
+                    label = "Source",
+                    url = mod.Links.SourceUrl
+                });
+            }
+
             return new
             {
                 type = 4,
@@ -126,23 +177,7 @@ namespace CFLookup
                         new
                         {
                             type = 1,
-                            components = new List<object>
-                            {
-                                new
-                                {
-                                    type = 2,
-                                    style = 5,
-                                    label = "CFLookup",
-                                    url = $"https://cflookup.com/{projectId.Value}"
-                                },
-                                new
-                                {
-                                    type = 2,
-                                    style = 5,
-                                    label = "CurseForge",
-                                    url = mod.Links.WebsiteUrl
-                                }
-                            }
+                            components = buttons
                         }
                     }
                 }
