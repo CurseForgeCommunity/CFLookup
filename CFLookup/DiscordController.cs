@@ -206,14 +206,17 @@ namespace CFLookup
                 url = $"https://cflookup.com/{projectId.Value}"
             });
 
-            buttons.Add(
-            new
+            if (!string.IsNullOrWhiteSpace(mod.Links?.WebsiteUrl))
             {
-                type = 2,
-                style = 5,
-                label = "CurseForge",
-                url = mod.Links.WebsiteUrl
-            });
+                buttons.Add(
+                new
+                {
+                    type = 2,
+                    style = 5,
+                    label = "CurseForge",
+                    url = mod.Links.WebsiteUrl
+                });
+            }
 
             var embeds = new List<object> { };
 
