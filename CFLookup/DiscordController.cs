@@ -217,22 +217,18 @@ namespace CFLookup
 
             var embeds = new List<object> { };
 
-            if (!string.IsNullOrWhiteSpace(mod.Logo?.ThumbnailUrl))
-            {
-                embeds.Add(new
-                {
-                    url = mod.Logo.ThumbnailUrl
-                });
-            }
-
             var infoTable = new
             {
                 title = "Project information",
                 color = 15105570,
+                thumbnail = new
+                {
+                    url = mod.Logo.ThumbnailUrl
+                },
                 fields = new List<object>
                 {
                     new { name = "Author", value = string.Join(", ", mod.Authors.Select(c => $"[{c.Name}]({c.Url})")), inline = true },
-                    new { name = "Status", value = mod.Status, inline = true },
+                    new { name = "Status", value = mod.Status.ToString(), inline = true },
                     new { name = "Created", value = mod.DateCreated.ToString(), inline = true },
                     new { name = "Modified", value = mod.DateModified.ToString(), inline = true },
                     new { name = "Released", value = mod.DateReleased.ToString(), inline = true },
@@ -249,7 +245,7 @@ namespace CFLookup
                 type = 4,
                 data = new
                 {
-                    content = $"Project `{projectId.Value}` is: **[{mod.Name}](https://cflookup.com/{projectId.Value})**" +
+                    content = $"Project `{projectId.Value}` is: **[{mod.Name}](https://cflookup.com/{projectId.Value})**\n" +
                     $"{summaryText}",
                     embeds = embeds,
                     components = new List<object> {

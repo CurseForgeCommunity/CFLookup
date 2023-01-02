@@ -1,6 +1,7 @@
 ﻿using CurseForge.APIClient;
 using Microsoft.AspNetCore.Mvc;
 using StackExchange.Redis;
+using System.Text.RegularExpressions;
 
 namespace CFLookup
 {
@@ -91,8 +92,8 @@ namespace CFLookup
                         }
                     }
                 }
-                var gameVersions = string.Join(", ", gameVersionList.Distinct());
-                var modLoaders = string.Join(", ", modloaderList.Distinct());
+                var gameVersions = string.Join(", ", gameVersionList.Distinct().OrderBy(gvt => Regex.Replace(gvt, "\\d+", m => m.Value.PadLeft(10, '0'))));
+                var modLoaders = string.Join(", ", modloaderList.Distinct().OrderBy(gvt => Regex.Replace(gvt, "\\d+", m => m.Value.PadLeft(10, '0'))));
 
                 if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
                 {
