@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using NSec.Cryptography;
 using StackExchange.Redis;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CFLookup
 {
@@ -116,6 +117,52 @@ namespace CFLookup
                 };
             }
 
+            var summaryText = new StringBuilder();
+            var haveExtraLinebreak = false;
+
+            summaryText.AppendLine(mod.Summary);
+
+            if (mod.LatestFilesIndexes?.Count > 0)
+            {
+                var gameVersionList = new List<string>();
+                var modloaderList = new List<string>();
+
+                foreach (var file in mod.LatestFilesIndexes)
+                {
+                    var modFile = mod.LatestFiles.FirstOrDefault(f => f.Id == file.FileId);
+                    if (modFile?.IsAvailable ?? true)
+                    {
+                        if (!string.IsNullOrWhiteSpace(file.GameVersion))
+                        {
+                            gameVersionList.Add(file.GameVersion);
+                        }
+                        if (!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
+                        {
+                            modloaderList.Add(file.ModLoader?.ToString());
+                        }
+                    }
+                }
+
+                var gameVersions = string.Join(", ", gameVersionList.Distinct().OrderBy(gvt => Regex.Replace(gvt, "\\d+", m => m.Value.PadLeft(10, '0'))));
+                var modLoaders = string.Join(", ", modloaderList.Distinct().OrderBy(gvt => Regex.Replace(gvt, "\\d+", m => m.Value.PadLeft(10, '0'))));
+
+                if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
+                {
+                    summaryText.AppendLine();
+                    haveExtraLinebreak = true;
+                }
+
+                if (!string.IsNullOrWhiteSpace(gameVersions))
+                {
+                    summaryText.AppendLine($"Game version(s): {gameVersions}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(modLoaders))
+                {
+                    summaryText.AppendLine($"Modloader(s): {modLoaders}");
+                }
+            }
+
             var buttons = new List<object> { };
 
             if (!string.IsNullOrWhiteSpace(mod.Links?.WikiUrl))
@@ -168,12 +215,43 @@ namespace CFLookup
                 url = mod.Links.WebsiteUrl
             });
 
+            var embeds = new List<object> { };
+
+            if (!string.IsNullOrWhiteSpace(mod.Logo?.ThumbnailUrl))
+            {
+                embeds.Add(new
+                {
+                    url = mod.Logo.ThumbnailUrl
+                });
+            }
+
+            var infoTable = new
+            {
+                title = "Project information",
+                color = 15105570,
+                fields = new List<object>
+                {
+                    new { name = "Author", value = string.Join(", ", mod.Authors.Select(c => $"[{c.Name}]({c.Url})")), inline = true },
+                    new { name = "Status", value = mod.Status, inline = true },
+                    new { name = "Created", value = mod.DateCreated.ToString(), inline = true },
+                    new { name = "Modified", value = mod.DateModified.ToString(), inline = true },
+                    new { name = "Released", value = mod.DateReleased.ToString(), inline = true },
+                    new { name = "Downloads", value = mod.DownloadCount.ToString("n0"), inline = true },
+                    new { name = "Categories", value = string.Join(", ", mod.Categories.Select(c => $"[{c.Name}]({c.Url})")), inline = true },
+                    new { name = "Mod Distribution", value = mod.AllowModDistribution ?? true ? "Allowed" : "Not allowed", inline = true },
+                }
+            };
+
+            embeds.Add(infoTable);
+
             return new
             {
                 type = 4,
                 data = new
                 {
-                    content = $"Project `{projectId.Value}` is: **[{mod.Name}](https://cflookup.com/{projectId.Value})**",
+                    content = $"Project `{projectId.Value}` is: **[{mod.Name}](https://cflookup.com/{projectId.Value})**" +
+                    $"{summaryText}",
+                    embeds = embeds,
                     components = new List<object> {
                         new
                         {
