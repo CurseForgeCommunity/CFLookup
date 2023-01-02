@@ -229,9 +229,9 @@ namespace CFLookup
                 {
                     new { name = "Author", value = string.Join(", ", mod.Authors.Select(c => $"[{c.Name}]({c.Url})")), inline = true },
                     new { name = "Status", value = mod.Status.ToString(), inline = true },
-                    new { name = "Created", value = mod.DateCreated.ToString(), inline = true },
-                    new { name = "Modified", value = mod.DateModified.ToString(), inline = true },
-                    new { name = "Released", value = mod.DateReleased.ToString(), inline = true },
+                    new { name = "Created", value = $"<t:{mod.DateCreated.ToUnixTimeSeconds()}:F>", inline = true },
+                    new { name = "Modified", value = $"<t:{mod.DateModified.ToUnixTimeSeconds()}:R>", inline = true },
+                    new { name = "Released", value = $"<t:{mod.DateReleased.ToUnixTimeSeconds()}:F>", inline = true },
                     new { name = "Downloads", value = mod.DownloadCount.ToString("n0"), inline = true },
                     new { name = "Categories", value = string.Join(", ", mod.Categories.Select(c => $"[{c.Name}]({c.Url})")), inline = true },
                     new { name = "Mod Distribution", value = mod.AllowModDistribution ?? true ? "Allowed" : "Not allowed", inline = true },
