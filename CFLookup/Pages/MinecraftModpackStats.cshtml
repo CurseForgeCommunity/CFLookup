@@ -65,3 +65,5 @@
             @Html.Raw(string.Join("\n", modData.Select(d => $"<tr><td scope=\"row\">{d.Key}</td><td class=\"text-end\">{d.Value.ToString("n0")}</td></tr>")))
     </tbody>
 </table>
+<hr />
+<i>Data will refresh in: @(Model.CacheExpiration?.ToHumanReadableFormat() ?? "Right about now")</i>

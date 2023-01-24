@@ -12,6 +12,7 @@ namespace CFLookup.Pages
         private readonly IDatabaseAsync _redis;
 
         public ConcurrentDictionary<string, long> MinecraftStats = new ConcurrentDictionary<string, long>();
+        public TimeSpan? CacheExpiration { get; set; }
         public MinecraftModpackStatsModel(ApiClient cfApiClient, ConnectionMultiplexer connectionMultiplexer)
         {
             _cfApiClient = cfApiClient;
@@ -21,6 +22,7 @@ namespace CFLookup.Pages
         public async Task<IActionResult> OnGetAsync()
         {
             MinecraftStats = await SharedMethods.GetMinecraftModpackStatistics(_redis, _cfApiClient);
+            CacheExpiration = await _redis.KeyTimeToLiveAsync("cf-mcmodpack-stats");
 
             return Page();
         }
