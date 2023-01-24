@@ -304,10 +304,11 @@ namespace CFLookup
         public static string ToHumanReadableFormat(this TimeSpan timeSpan)
         {
             return timeSpan.TotalSeconds <= 0 ? "0 seconds" : string.Format("{0}{1}{2}",
-                timeSpan.Hours > 0 ? string.Format($"{timeSpan.Hours:n0} hour{{0}}, ", timeSpan.Hours != 0 ? "s" : string.Empty) : string.Empty,
-                timeSpan.Minutes > 0 ? string.Format($"{timeSpan.Minutes:n0} minute{{0}}, ", timeSpan.Minutes != 0 ? "s" : string.Empty) : string.Empty,
-                timeSpan.Seconds > 0 ? string.Format($"{timeSpan.Seconds:n0} second{{0}}", timeSpan.Seconds != 0 ? "s" : string.Empty) : string.Empty
+                timeSpan.Hours > 0 ? string.Format($"{timeSpan.Hours:n0} hour{{0}}, ", timeSpan.Hours != 1 ? "s" : string.Empty) : string.Empty,
+                timeSpan.Minutes > 0 ? string.Format($"{timeSpan.Minutes:n0} minute{{0}}, ", timeSpan.Minutes != 1 ? "s" : string.Empty) : string.Empty,
+                timeSpan.Seconds > 0 ? string.Format($"{timeSpan.Seconds:n0} second{{0}}", timeSpan.Seconds != 1 ? "s" : string.Empty) : string.Empty
             ).Trim(new[] { ' ', ',' });
         }
     }
+}
 }
