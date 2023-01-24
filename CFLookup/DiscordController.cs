@@ -62,7 +62,7 @@ namespace CFLookup
             {
                 case DiscordInteractionType.Ping:
                     {
-                        _ = RegisterDiscordCommandsAsync(discordAppId);
+                        await RegisterDiscordCommandsAsync(discordAppId);
                         return new JsonResult(new DiscordPongResult());
                     }
                 case DiscordInteractionType.ApplicationCommand:
@@ -72,7 +72,7 @@ namespace CFLookup
             return new JsonResult(requestObject);
         }
 
-        private async Task<object> HandleDiscordCommandAsync(DiscordInteractionRequest request)
+        private async Task<object?> HandleDiscordCommandAsync(DiscordInteractionRequest request)
         {
             if (request.Data is null)
             {
@@ -138,7 +138,7 @@ namespace CFLookup
                         }
                         if (!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
                         {
-                            modloaderList.Add(file.ModLoader?.ToString());
+                            modloaderList.Add(file.ModLoader.Value.ToString());
                         }
                     }
                 }
