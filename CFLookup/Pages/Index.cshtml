@@ -16,6 +16,23 @@
         permLink = Url.PageLink($"/Index", values: new { projectId = Model.FoundMod.Id, fileId = Model.FileSearchField }, protocol: "https");
         oembedLink = Url.PageLink("/Index", values: new { projectId = "" }, protocol: "https") + $"api/oembed/{Model.FoundMod.Id}.oembed.json";
     }
+
+    var foundLinks = new Dictionary<string, string>();
+    @if (Model.FoundMod != null)
+    {
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.IssuesUrl))
+        {
+            foundLinks.Add("Issues", Model.FoundMod.Links.IssuesUrl);
+        }
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.WikiUrl))
+        {
+            foundLinks.Add("Wiki/Docs", Model.FoundMod.Links.WikiUrl);
+        }
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
+        {
+            foundLinks.Add("Source", Model.FoundMod.Links.SourceUrl);
+        }
+    }
 }
 
 @section Head {
@@ -286,6 +303,20 @@
                         </tr>
                     </tbody>
                 </table>
+                @if(foundLinks.Count > 0)
+                {
+                    <table class="table table-striped table-dark text-start table-bordered caption-top">
+                        <caption>Project links</caption>
+                         <tbody>
+                            <tr>
+                            @foreach (var link in foundLinks)
+                            {
+                                    <td style="text-align: center;"><a href="@link.Value" class="text-white fw-bold text-decoration-none" target="_blank">@link.Key <i class="bi bi-box-arrow-up-right"></i></a></td>
+                            }
+                            </tr>
+                        </tbody>
+                    </table>
+                }
                 @if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
                 {
                     <table class="table table-striped table-dark text-start table-bordered caption-top">
