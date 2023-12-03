@@ -63,7 +63,7 @@ namespace CFLookup.Pages
                 {
                     if (!IgnoredUserAgentsForRedirect.Any(i => Request.Headers.UserAgent.Any(ua => ua.Contains(i))))
                     {
-                        return Redirect(FoundMod.Links.WebsiteUrl);
+                        return Redirect($"{FoundMod.Links.WebsiteUrl}/files/{fileId}");
                     }
                 }
 
