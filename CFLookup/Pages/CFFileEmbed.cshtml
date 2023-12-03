@@ -1,0 +1,84 @@
+﻿@page "/f/{fileId}"
+@model CFLookup.Pages.CFFileEmbedModel
+@{
+    ViewData["Title"] = "What?";
+
+    var permLink = string.Empty;
+    var oembedLink = string.Empty;
+
+    if (Model.FoundMod != null)
+    {
+        ViewData["Title"] = Model.FoundMod.Name;
+        permLink = Url.PageLink($"/CFFileEmbed", values: new { fileId = Model.FileId }, protocol: "https");
+        oembedLink = Url.PageLink("/Index", values: new { projectId = "" }, protocol: "https") + $"api/oembed/{Model.FoundMod.Id}.oembed.json";
+    }
+}
+
+@section Head {
+    <meta name="twitter:card" content="summary">
+    <meta property="og:type" content="website" />
+    @if (Model.FoundFile != null && Model.FoundMod != null)
+    {
+        var summaryText = new System.Text.StringBuilder();
+        var haveExtraLinebreak = false;
+        summaryText.AppendLine(Model.FoundFile.DisplayName);
+        summaryText.AppendLine();
+        summaryText.AppendLine(Model.Changelog);
+
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.IssuesUrl))
+        {
+            summaryText.AppendLine();
+            summaryText.AppendLine($"Issues: {Model.FoundMod.Links.IssuesUrl}");
+            haveExtraLinebreak = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.WikiUrl))
+        {
+            if (!haveExtraLinebreak)
+            {
+                summaryText.AppendLine();
+                haveExtraLinebreak = true;
+            }
+            summaryText.AppendLine($"Wiki/Docs: {Model.FoundMod.Links.WikiUrl}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
+        {
+            if (!haveExtraLinebreak)
+            {
+                summaryText.AppendLine();
+                haveExtraLinebreak = true;
+            }
+            summaryText.AppendLine($"Source: {Model.FoundMod.Links.SourceUrl}");
+        }
+
+        <meta property="og:title" content="@Model.FoundMod.Name" />
+        <meta name="twitter:title" content="@Model.FoundMod.Name" />
+        if (Model.FoundMod.Links != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Links.WebsiteUrl))
+        {
+            <meta property="og:url" content="@Model.FoundMod.Links.WebsiteUrl" />
+        }
+        if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
+        {
+            <meta property="og:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
+            <meta property="og:image:alt" content="Project logotype" />
+            <meta property="og:image:width" content="256" />
+            <meta property="og:image:height" content="256" />
+            <meta name="twitter:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
+        }
+        <meta name="description" content="@summaryText.ToString().Trim()" />
+        <meta property="og:description" content="@summaryText.ToString().Trim()" />
+        <meta name="twitter:description" content="@summaryText.ToString().Trim()" />
+        <meta name="twitter:site" content="@@CurseForge">
+        <link rel="alternate" type="application/json+oembed" href="@oembedLink" title="@Model.FoundMod.Name" />
+    }
+    else
+    {
+        <meta property="og:title" content="Embed not available yet" />
+        <meta property="og:url" content="@permLink" />
+        <meta name="description" content="We could not find the information for the requested mod, or it is not available through the 3rd party API yet." />
+        <meta property="og:description" content="We could not find the information for the requested mod, or it is not available through the 3rd party API yet." />
+        <meta name="twitter:description" content="We could not find the information for the requested mod, or it is not available through the 3rd party API yet." />
+        <meta name="twitter:site" content="@@NoLifeKing85">
+    }
+}

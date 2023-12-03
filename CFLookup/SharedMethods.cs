@@ -1,5 +1,6 @@
 ﻿using CurseForge.APIClient;
 using CurseForge.APIClient.Models;
+using CurseForge.APIClient.Models.Files;
 using CurseForge.APIClient.Models.Games;
 using CurseForge.APIClient.Models.Mods;
 using Newtonsoft.Json;
@@ -54,6 +55,32 @@ namespace CFLookup
             await _redis.StringSetAsync($"cf-categories-{game}", JsonConvert.SerializeObject(categories.Data), TimeSpan.FromMinutes(5));
 
             return categories.Data;
+        }
+
+        public static async Task<(Mod? mod, CurseForge.APIClient.Models.Files.File? file, string? changelog)> GetFileInfoAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int fileId)
+        {
+            var cachedFile = await _redis.StringGetAsync($"cf-fileinfo-{fileId}");
+
+            if (!cachedFile.IsNullOrEmpty)
+            {
+                return JsonConvert.DeserializeObject<(Mod mod, CurseForge.APIClient.Models.Files.File file, string changelog)>(cachedFile);
+            }
+
+            var file = await _cfApiClient.GetFilesAsync(new GetModFilesRequestBody
+            {
+                FileIds = new List<int> { fileId }
+            });
+
+            if(file.Data.Count == 0)
+                return (null, null, null);
+
+            var mod = await _cfApiClient.GetModAsync(file.Data[0].ModId);
+
+            var changelog = await _cfApiClient.GetModFileChangelogAsync(file.Data[0].ModId, fileId);
+
+            await _redis.StringSetAsync($"cf-fileinfo-{fileId}", JsonConvert.SerializeObject((mod.Data, file.Data[0], changelog.Data)), TimeSpan.FromMinutes(5));
+
+            return (mod.Data, file.Data[0], changelog.Data);
         }
 
         public static async Task<List<Category>> GetCategoryInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, int gameId)
