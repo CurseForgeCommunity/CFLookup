@@ -17,6 +17,11 @@
         oembedLink = Url.PageLink("/Index", values: new { projectId = "" }, protocol: "https") + $"api/oembed/{Model.FoundMod.Id}.oembed.json";
     }
 
+    if(Model.FoundMods != null)
+    {
+        permLink = Url.PageLink($"/Index", values: new { search = Model.ProjectSearchField }, protocol: "https");
+    }
+
     var foundLinks = new Dictionary<string, string>();
     @if (Model.FoundMod != null)
     {
@@ -167,7 +172,7 @@
     <div class="text-center">
         <h1 class="display-4">CFLookup / What CurseForge Project Is This?</h1>
         <form href="/" asp-page="Index" method="post">
-            <label class="form-label" for="projectSearchField">Enter the project id, and we'll try to look it up for you!</label>
+            <label class="form-label" for="projectSearchField">Enter the project id a slug or a comma separated list of project ids, and we'll try to look it up for you!</label>
             <div class="row justify-content-center">
                 <div class="col-md-6">
                     <div class="input-group mb-3">
@@ -209,6 +214,7 @@
     {
         <hr />
         <h2>Found multiple results for your query <kbd>@Model.ProjectSearchField</kbd></h2>
+        <p class="text-muted"><em>Permalink: <a href="@permLink" class="text-muted" target="_blank">@permLink</a></em></p>
         var modsGroupedByGame = Model.FoundMods.GroupBy(k => k.Value.game).ToList();
         foreach (var game in modsGroupedByGame)
         {
