@@ -37,7 +37,7 @@ namespace CFLookup.Pages
             _redis = connectionMultiplexer.GetDatabase(5);
         }
 
-        public async Task OnGet(int? projectId = null, int? fileId = null, bool? rcf = false)
+        public async Task OnGet(int? projectId = null, int? fileId = null, bool? rcf = false, string search = null)
         {
             if (fileId.HasValue)
             {
@@ -49,6 +49,12 @@ namespace CFLookup.Pages
             {
                 ProjectSearchField = projectId.Value.ToString();
                 FoundMod = await SharedMethods.SearchModAsync(_redis, _cfApiClient, projectId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                ProjectSearchField = search;
+                await OnPostAsync();
             }
 
             IsDiscord = false; //Request.Headers.UserAgent.Any(ua => ua.Contains("Discordbot"));
