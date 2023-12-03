@@ -53,7 +53,6 @@ namespace CFLookup
 
         private static DateTimeOffset GetTruncatedTime(TimeSpan timeSpan)
         {
-            // return a DateTimeOffset without ticks or milliseconds to get a static value
             var now = DateTimeOffset.UtcNow;
             now = now.Add(timeSpan);
 

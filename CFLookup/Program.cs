@@ -32,6 +32,7 @@ builder.Services.AddControllers();
 
 var cfApiKey = string.Empty;
 var redisServer = string.Empty;
+var dbConnectionString = string.Empty;
 
 if (OperatingSystem.IsWindows())
 {
@@ -44,11 +45,17 @@ if (OperatingSystem.IsWindows())
         Environment.GetEnvironmentVariable("RedisServer", EnvironmentVariableTarget.User) ??
         Environment.GetEnvironmentVariable("RedisServer", EnvironmentVariableTarget.Process) ??
         "127.0.0.1:6379";
+
+    dbConnectionString = Environment.GetEnvironmentVariable("DbConnStr", EnvironmentVariableTarget.Machine) ??
+        Environment.GetEnvironmentVariable("DbConnStr", EnvironmentVariableTarget.User) ??
+        Environment.GetEnvironmentVariable("DbConnStr", EnvironmentVariableTarget.Process) ??
+        string.Empty;
 }
 else
 {
     cfApiKey = Environment.GetEnvironmentVariable("CFAPI_Key") ?? string.Empty;
     redisServer = Environment.GetEnvironmentVariable("RedisServer") ?? "127.0.0.1:6379";
+    dbConnectionString = Environment.GetEnvironmentVariable("DbConnStr") ?? string.Empty;
 }
 
 builder.Services.AddSingleton(ConnectionMultiplexer.Connect(redisServer));

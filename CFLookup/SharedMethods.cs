@@ -25,6 +25,20 @@ namespace CFLookup
             return games.Data;
         }
 
+        public static async Task<Game> GetGameInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, int gameId)
+        {
+            var cachedGame = await _redis.StringGetAsync($"cf-games-{gameId}");
+
+            if (!cachedGame.IsNullOrEmpty)
+            {
+                return JsonConvert.DeserializeObject<Game>(cachedGame);
+            }
+
+            var games = await _cfApiClient.GetGameAsync(gameId);
+            await _redis.StringSetAsync($"cf-games-{gameId}", JsonConvert.SerializeObject(games.Data), TimeSpan.FromMinutes(5));
+            return games.Data;
+        }
+
         public static async Task<List<Category>> GetCategoryInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, List<Game> gameInfo, string game)
         {
             var cachedCategories = await _redis.StringGetAsync($"cf-categories-{game}");

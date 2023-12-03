@@ -26,7 +26,7 @@ namespace CFLookup.Pages
 
         public Mod? FoundMod { get; set; }
 
-        public ConcurrentDictionary<string, (Game game, Category category, List<Mod> mods)> FoundMods { get; set; }
+        public ConcurrentDictionary<string, (Game game, Category? category, List<Mod> mods)> FoundMods { get; set; }
 
         readonly Regex modsTomlRegex = new(@"displayName=""(.*?)""", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -100,6 +100,56 @@ namespace CFLookup.Pages
                 else
                 {
                     ErrorMessage = "Could not find mod with file id " + fileId;
+                    return Page();
+                }
+            }
+
+            // Handle if the input in the project search field is a comma separated list of IDs and then serve a list of those mods found
+            if (ProjectSearchField.Contains(','))
+            {
+                var projectIds = ProjectSearchField.Split(',').Select(p => int.TryParse(p, out var id) ? id : -1).Where(p => p != -1).ToList();
+
+                var foundMods = new List<Mod>();
+
+                foreach (var id in projectIds)
+                {
+                    var foundMod = await SharedMethods.SearchModAsync(_redis, _cfApiClient, id);
+                    if (foundMod != null)
+                    {
+                        foundMods.Add(foundMod);
+                    }
+                }
+
+                if (foundMods.Count > 0)
+                {
+                    FoundMods = new ConcurrentDictionary<string, (Game game, Category? category, List<Mod> mods)>();
+                    foreach (var mod in foundMods)
+                    {
+                        if (!FoundMods.ContainsKey($"{mod.GameId}-{string.Join("|", mod.Categories.Select(i => i.Id))}"))
+                        {
+                            var game = await SharedMethods.GetGameInfo(_redis, _cfApiClient, mod.GameId);
+                            var gameInfo = new List<Game> { game };
+                            var categoryInfo = await SharedMethods.GetCategoryInfo(_redis, _cfApiClient, gameInfo, game.Slug);
+                            if (categoryInfo != null)
+                            {
+                                var category = categoryInfo.FirstOrDefault(c => mod.Categories.Any(mc => mc.Id == c.Id));
+                                FoundMods.TryAdd($"{mod.GameId}-{string.Join("|", mod.Categories.Select(i => i.Id))}", (game, category, new List<Mod>()));
+                            }
+                            else
+                            {
+                                FoundMods.TryAdd($"{mod.GameId}-{string.Join("|", mod.Categories.Select(i => i.Id))}", (game, null, new List<Mod>()));
+                            }
+                            FoundMods.TryAdd($"{mod.GameId}-{string.Join("|", mod.Categories.Select(i => i.Id))}", (game, null, new List<Mod>()));
+                        }
+
+                        FoundMods[$"{mod.GameId}-{string.Join("|", mod.Categories.Select(i => i.Id))}"].mods.Add(mod);
+                    }
+
+                    return Page();
+                }
+                else
+                {
+                    ErrorMessage = "Could not find any of the projects";
                     return Page();
                 }
             }
