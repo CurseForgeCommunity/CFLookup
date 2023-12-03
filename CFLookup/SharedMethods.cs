@@ -71,6 +71,21 @@ namespace CFLookup
             return categories.Data;
         }
 
+        public static async Task<List<Mod>> SearchModsAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, List<int> modIds)
+        {
+            var cachedMods = await _redis.StringGetAsync($"cf-mods-{string.Join('-', modIds)}");
+            if (!cachedMods.IsNullOrEmpty)
+            {
+                return JsonConvert.DeserializeObject<List<Mod>>(cachedMods);
+            }
+
+            var mods = await _cfApiClient.GetModsByIdListAsync(new GetModsByIdsListRequestBody { ModIds = modIds });
+
+            await _redis.StringSetAsync($"cf-mods-{string.Join('-', modIds)}", JsonConvert.SerializeObject(mods.Data), TimeSpan.FromMinutes(5));
+
+            return mods.Data;
+        }
+
         public static async Task<Mod?> SearchModAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int projectId)
         {
             var modResultCache = await _redis.StringGetAsync($"cf-mod-{projectId}");

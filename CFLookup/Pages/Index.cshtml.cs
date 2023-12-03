@@ -109,16 +109,7 @@ namespace CFLookup.Pages
             {
                 var projectIds = ProjectSearchField.Split(',').Select(p => int.TryParse(p, out var id) ? id : -1).Where(p => p != -1).ToList();
 
-                var foundMods = new List<Mod>();
-
-                foreach (var id in projectIds)
-                {
-                    var foundMod = await SharedMethods.SearchModAsync(_redis, _cfApiClient, id);
-                    if (foundMod != null)
-                    {
-                        foundMods.Add(foundMod);
-                    }
-                }
+                var foundMods =  await SharedMethods.SearchModsAsync(_redis, _cfApiClient, projectIds);
 
                 if (foundMods.Count > 0)
                 {
