@@ -1,0 +1,28 @@
+﻿@page
+@model CFLookup.Pages.FileProcessingInfoModel
+@{
+    ViewData["Title"] = "File processing info";
+}
+
+<h1>Latest updated files per game</h1>
+<table class="table table-dark table-striped table-condensed">
+    <thead>
+        <tr>
+            <th scope="col">Game</th>
+            <th scope="col">Mod</th>
+            <th scope="col">File</th>
+            <th scope="col" class="text-end">Latest update</th>
+        </tr>
+    </thead>
+    @foreach (var row in Model.ModFiles)
+    {
+        <tbody>
+            <tr>
+                <td scope="row">@row.Game.Name</td>
+                <td>@row.Mod.Name</td>
+                <td>@row.File.FileName</td>
+                <td>@row.LatestUpdatedUtc</td>
+            </tr>
+        </tbody>
+    }
+</table>
