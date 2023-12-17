@@ -30,9 +30,9 @@ namespace CFLookup
 
             var json = await sr.ReadToEndAsync();
 
-            var discordAppId = Environment.GetEnvironmentVariable("DISCORD_APP_ID");
+            var discordAppId = Environment.GetEnvironmentVariable("DISCORD_APP_ID")!;
 
-            var publicDiscordKey = Environment.GetEnvironmentVariable("DISCORD_PUBLIC_KEY");
+            var publicDiscordKey = Environment.GetEnvironmentVariable("DISCORD_PUBLIC_KEY")!;
             Request.Headers.TryGetValue("X-Signature-Ed25519", out var signatureValue);
             Request.Headers.TryGetValue("X-Signature-Timestamp", out var signatureTimestamp);
 
