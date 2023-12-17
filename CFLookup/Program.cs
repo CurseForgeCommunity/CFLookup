@@ -83,8 +83,6 @@ public class Program
             dbConnectionString = Environment.GetEnvironmentVariable("CFLOOKUP_SQL") ?? string.Empty;
             hangfireUser = Environment.GetEnvironmentVariable("CFLOOKUP_HangfireUser") ?? string.Empty;
             hangfirePassword = Environment.GetEnvironmentVariable("CFLOOKUP_HangfirePassword") ?? string.Empty;
-
-            Console.WriteLine(dbConnectionString);
         }
 
         var redis = ConnectionMultiplexer.Connect(redisServer);
