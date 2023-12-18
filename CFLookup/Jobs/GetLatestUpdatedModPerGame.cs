@@ -4,9 +4,9 @@ using CurseForge.APIClient.Models.Games;
 using CurseForge.APIClient.Models.Mods;
 using Hangfire.Server;
 using Microsoft.Data.SqlClient;
-using System.Text.Json;
 using StackExchange.Redis;
 using System.Text;
+using System.Text.Json;
 
 namespace CFLookup.Jobs
 {
@@ -14,8 +14,8 @@ namespace CFLookup.Jobs
     {
         public static async Task RunAsync(PerformContext context)
         {
-            using(var scope = Program.ServiceProvider.CreateScope())
-            { 
+            using (var scope = Program.ServiceProvider.CreateScope())
+            {
                 var cfClient = scope.ServiceProvider.GetRequiredService<ApiClient>();
                 var db = scope.ServiceProvider.GetRequiredService<MSSQLDB>();
                 var _redis = scope.ServiceProvider.GetRequiredService<ConnectionMultiplexer>();
@@ -26,11 +26,11 @@ namespace CFLookup.Jobs
 
                 var allGames = new List<Game>();
                 var games = await cfClient.GetGamesAsync();
-                if(games != null && games.Pagination.ResultCount > 0)
+                if (games != null && games.Pagination.ResultCount > 0)
                 {
                     allGames.AddRange(games.Data);
                     var index = 0;
-                    while(games.Pagination.ResultCount > 0)
+                    while (games.Pagination.ResultCount > 0)
                     {
                         index += games.Pagination.PageSize;
                         games = await cfClient.GetGamesAsync(index);
@@ -44,13 +44,13 @@ namespace CFLookup.Jobs
                 Mod? latestUpdatedModData = null;
                 CurseForge.APIClient.Models.Files.File? latestUpdatedFileData = null;
 
-                foreach(var game in allGames)
+                foreach (var game in allGames)
                 {
                     Console.WriteLine($"Starting to check for latest updated mod for {game.Name}");
                     await _db.StringSetAsync($"cf-game-{game.Id}", JsonSerializer.Serialize(game), TimeSpan.FromDays(1));
 
                     var latestUpdatedMod = await cfClient.SearchModsAsync(game.Id, sortField: ModsSearchSortField.LastUpdated, sortOrder: ModsSearchSortOrder.Descending, pageSize: 1);
-                    if(latestUpdatedMod != null && latestUpdatedMod.Pagination.ResultCount > 0)
+                    if (latestUpdatedMod != null && latestUpdatedMod.Pagination.ResultCount > 0)
                     {
                         var mod = latestUpdatedMod.Data.First();
                         var latestUpdatedFile = mod.LatestFiles.OrderByDescending(f => f.FileDate).First();
@@ -62,15 +62,15 @@ namespace CFLookup.Jobs
                             latestUpdatedFileData = latestUpdatedFile;
                         }
 
-                        await _redis.StringSetAsync($"cf-mod-{mod.Id}", JsonSerializer.Serialize(mod), TimeSpan.FromDays(1));
-                        await _redis.StringSetAsync($"cf-file-{latestUpdatedFile.Id}", JsonSerializer.Serialize(file), TimeSpan.FromDays(1));
+                        await _db.StringSetAsync($"cf-mod-{mod.Id}", JsonSerializer.Serialize(mod), TimeSpan.FromDays(1));
+                        await _db.StringSetAsync($"cf-file-{latestUpdatedFile.Id}", JsonSerializer.Serialize(latestUpdatedFile), TimeSpan.FromDays(1));
 
                         var existingGame = await db.ExecuteSingleRowAsync<FileProcessingStatus>(
                             "SELECT * FROM fileProcessingStatus WHERE gameId = @gameId",
                             new SqlParameter("@gameId", game.Id)
                         );
 
-                        if(existingGame == null)
+                        if (existingGame == null)
                         {
                             // New game, insert it
                             await db.ExecuteNonQueryAsync(
@@ -102,13 +102,13 @@ namespace CFLookup.Jobs
 
                 Console.WriteLine($"Last updated mod was updated {lastUpdatedMod}");
 
-                if(lastUpdatedMod < DateTimeOffset.UtcNow.AddHours(-3) && latestUpdatedModData != null && latestUpdatedFileData != null)
+                if (lastUpdatedMod < DateTimeOffset.UtcNow.AddHours(-3) && latestUpdatedModData != null && latestUpdatedFileData != null)
                 {
                     Console.WriteLine("No mods were updated in the last 3 hours, file processing might be down.");
 
                     var warned = await _db.StringGetAsync("cf-file-processing-warning");
 
-                    if(warned.HasValue && warned == "true")
+                    if (warned.HasValue && warned == "true")
                     {
                         Console.WriteLine("Already warned about this, skipping.");
                         return;
@@ -120,7 +120,7 @@ namespace CFLookup.Jobs
                         Environment.GetEnvironmentVariable("DISCORD_WEBHOOK", EnvironmentVariableTarget.Process) ??
                         string.Empty;
 
-                    if(!string.IsNullOrWhiteSpace(discordWebhook))
+                    if (!string.IsNullOrWhiteSpace(discordWebhook))
                     {
                         var message = @$"No mods were updated in the last 3 hours, file processing might be down.
 Last updated mod was updated {lastUpdatedMod}, and it was {latestUpdatedModData.Name}
