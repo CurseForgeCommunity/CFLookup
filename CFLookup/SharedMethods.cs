@@ -357,7 +357,7 @@ namespace CFLookup
             return Path.GetFileName(url);
         }
 
-        public static string ToHumanReadableFormat(this TimeSpan timeSpan, bool shortText = false, double skipMinutesAndSecondsAfterHours = 2.0f)
+        public static string ToHumanReadableFormat(this TimeSpan timeSpan, bool shortText = false, double skipMinutesAfterHours = 24.0f, double skipSecondsAfterHours = 1.0f)
         {
             var secondText = shortText ? "s" : " second" + (timeSpan.Seconds != 1 ? "s" : string.Empty);
             var minuteText = shortText ? "m" : " minute" + (timeSpan.Minutes != 1 ? "s" : string.Empty);
@@ -367,10 +367,10 @@ namespace CFLookup
             return timeSpan.TotalSeconds <= 0 ? "0 seconds" : string.Format("{0}{1}{2}{3}",
                 timeSpan.Days > 0 ? $"{timeSpan.Days:n0}{dayText}, " : string.Empty,
                 timeSpan.Hours > 0 ? $"{timeSpan.Hours:n0}{hourText}, " : string.Empty,
-                timeSpan.TotalHours <= skipMinutesAndSecondsAfterHours ?
+                timeSpan.TotalHours <= skipMinutesAfterHours ?
                     timeSpan.Minutes > 0 ? $"{timeSpan.Minutes:n0}{minuteText}, " : string.Empty :
                     string.Empty,
-                timeSpan.TotalHours <= skipMinutesAndSecondsAfterHours ?
+                timeSpan.TotalHours <= skipSecondsAfterHours ?
                     timeSpan.Seconds > 0 ? $"{timeSpan.Seconds:n0}{secondText}" : string.Empty :
                     string.Empty
             ).Trim(new[] { ' ', ',' });
