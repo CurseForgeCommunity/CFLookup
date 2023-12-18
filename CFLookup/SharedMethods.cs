@@ -71,7 +71,7 @@ namespace CFLookup
                 FileIds = new List<int> { fileId }
             });
 
-            if(file.Data.Count == 0)
+            if (file.Data.Count == 0)
                 return (null, null, null);
 
             var mod = await _cfApiClient.GetModAsync(file.Data[0].ModId);
@@ -359,7 +359,8 @@ namespace CFLookup
 
         public static string ToHumanReadableFormat(this TimeSpan timeSpan)
         {
-            return timeSpan.TotalSeconds <= 0 ? "0 seconds" : string.Format("{0}{1}{2}",
+            return timeSpan.TotalSeconds <= 0 ? "0 seconds" : string.Format("{0}{1}{2}{3}",
+                timeSpan.Days > 0 ? string.Format($"{timeSpan.Days:n0} day{{0}}, ", timeSpan.Days != 1 ? "s" : string.Empty) : string.Empty,
                 timeSpan.Hours > 0 ? string.Format($"{timeSpan.Hours:n0} hour{{0}}, ", timeSpan.Hours != 1 ? "s" : string.Empty) : string.Empty,
                 timeSpan.Minutes > 0 ? string.Format($"{timeSpan.Minutes:n0} minute{{0}}, ", timeSpan.Minutes != 1 ? "s" : string.Empty) : string.Empty,
                 timeSpan.Seconds > 0 ? string.Format($"{timeSpan.Seconds:n0} second{{0}}", timeSpan.Seconds != 1 ? "s" : string.Empty) : string.Empty
