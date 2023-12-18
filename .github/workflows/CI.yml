@@ -4,6 +4,10 @@ on:
   push:
     branches: [master]
 
+concurrency:
+  group: environment-${{ github.ref }}-ci
+  cancel-in-progress: true
+
 jobs:
   generate:
     runs-on: ubuntu-latest
