@@ -4,7 +4,7 @@ using CurseForge.APIClient.Models.Games;
 using CurseForge.APIClient.Models.Mods;
 using Hangfire.Server;
 using Microsoft.Data.SqlClient;
-using Newtonsoft.Json;
+using System.Text.Json;
 using StackExchange.Redis;
 using System.Text;
 
@@ -132,7 +132,7 @@ https://cflookup.com/{latestUpdatedModData.Id}";
                             flags = 4
                         };
 
-                        var json = JsonConvert.SerializeObject(payload);
+                        var json = JsonSerializer.Serialize(payload);
                         var content = new StringContent(json, Encoding.UTF8, "application/json");
                         await httpClient.PostAsync(discordWebhook, content);
                     }
