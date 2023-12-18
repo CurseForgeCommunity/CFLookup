@@ -47,6 +47,7 @@ namespace CFLookup.Jobs
                 foreach(var game in allGames)
                 {
                     Console.WriteLine($"Starting to check for latest updated mod for {game.Name}");
+                    await _db.StringSetAsync($"cf-game-{game.Id}", JsonSerializer.Serialize(game), TimeSpan.FromDays(1));
 
                     var latestUpdatedMod = await cfClient.SearchModsAsync(game.Id, sortField: ModsSearchSortField.LastUpdated, sortOrder: ModsSearchSortOrder.Descending, pageSize: 1);
                     if(latestUpdatedMod != null && latestUpdatedMod.Pagination.ResultCount > 0)
@@ -60,6 +61,9 @@ namespace CFLookup.Jobs
                             latestUpdatedModData = mod;
                             latestUpdatedFileData = latestUpdatedFile;
                         }
+
+                        await _redis.StringSetAsync($"cf-mod-{mod.Id}", JsonSerializer.Serialize(mod), TimeSpan.FromDays(1));
+                        await _redis.StringSetAsync($"cf-file-{latestUpdatedFile.Id}", JsonSerializer.Serialize(file), TimeSpan.FromDays(1));
 
                         var existingGame = await db.ExecuteSingleRowAsync<FileProcessingStatus>(
                             "SELECT * FROM fileProcessingStatus WHERE gameId = @gameId",
