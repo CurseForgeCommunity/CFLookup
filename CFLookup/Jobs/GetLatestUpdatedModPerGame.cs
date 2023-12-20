@@ -46,7 +46,15 @@ namespace CFLookup.Jobs
 
                 var privateGames = new List<int>
                 {
-                    83374
+                    449, // Skyrim
+                    540, // 7 Days To Die
+                    4482, // Subnautica
+                    4593, // Final Fantasy XV
+                    4619, // The Last of Us
+                    4819, // American Truck Simulator
+                    6351, // Mario Party 3
+                    18237, // Staxel
+                    83374, // ARK
                 };
 
                 foreach (var privateGame in privateGames)
