@@ -44,6 +44,20 @@ namespace CFLookup.Jobs
                 Mod? latestUpdatedModData = null;
                 CurseForge.APIClient.Models.Files.File? latestUpdatedFileData = null;
 
+                var privateGames = new List<int>
+                {
+                    83374
+                };
+
+                foreach (var privateGame in privateGames)
+                {
+                    var game = await cfClient.GetGameAsync(privateGame);
+                    if (game != null && game.Data != null)
+                    {
+                        allGames.Add(game.Data);
+                    }
+                }
+
                 foreach (var game in allGames)
                 {
                     Console.WriteLine($"Starting to check for latest updated mod for {game.Name}");
