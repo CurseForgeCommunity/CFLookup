@@ -98,46 +98,48 @@ namespace CFLookup.Jobs
                     if (latestUpdatedMod != null && latestUpdatedMod.Pagination.ResultCount > 0)
                     {
                         var mod = latestUpdatedMod.Data.First();
-                        var latestUpdatedFile = mod.LatestFiles.OrderByDescending(f => f.FileDate).First();
-                        Console.WriteLine($"Latest updated mod for {game.Name} is {mod.Name} with {mod.DownloadCount} downloads and the latest file was updated {latestUpdatedFile.FileDate}");
-                        if (lastUpdatedMod < latestUpdatedFile.FileDate)
+                        var latestUpdatedFile = mod.LatestFiles.OrderByDescending(f => f.FileDate).FirstOrDefault();
+                        if (latestUpdatedFile != null)
                         {
-                            lastUpdatedMod = latestUpdatedFile.FileDate;
-                            latestUpdatedModData = mod;
-                            latestUpdatedFileData = latestUpdatedFile;
-                        }
+                            Console.WriteLine($"Latest updated mod for {game.Name} is {mod.Name} with {mod.DownloadCount} downloads and the latest file was updated {latestUpdatedFile.FileDate}");
+                            if (lastUpdatedMod < latestUpdatedFile.FileDate)
+                            {
+                                lastUpdatedMod = latestUpdatedFile.FileDate;
+                                latestUpdatedModData = mod;
+                                latestUpdatedFileData = latestUpdatedFile;
+                            }
 
-                        await _db.StringSetAsync($"cf-mod-{mod.Id}", JsonSerializer.Serialize(mod), TimeSpan.FromDays(1));
-                        await _db.StringSetAsync($"cf-file-{latestUpdatedFile.Id}", JsonSerializer.Serialize(latestUpdatedFile), TimeSpan.FromDays(1));
+                            await _db.StringSetAsync($"cf-mod-{mod.Id}", JsonSerializer.Serialize(mod), TimeSpan.FromDays(1));
+                            await _db.StringSetAsync($"cf-file-{latestUpdatedFile.Id}", JsonSerializer.Serialize(latestUpdatedFile), TimeSpan.FromDays(1));
 
-                        var existingGame = await db.ExecuteSingleRowAsync<FileProcessingStatus>(
-                            "SELECT * FROM fileProcessingStatus WHERE gameId = @gameId",
-                            new SqlParameter("@gameId", game.Id)
-                        );
-
-                        if (existingGame == null)
-                        {
-                            // New game, insert it
-                            await db.ExecuteNonQueryAsync(
-                                "INSERT INTO fileProcessingStatus (last_updated_utc, gameId, modId, fileId) VALUES (@last_updated_utc, @gameId, @modId, @fileId)",
-                                new SqlParameter("@last_updated_utc", latestUpdatedFile.FileDate),
-                                new SqlParameter("@gameId", game.Id),
-                                new SqlParameter("@modId", mod.Id),
-                                new SqlParameter("@fileId", latestUpdatedFile.Id)
-                            );
-                        }
-                        else
-                        {
-                            // Existing game, update it
-                            await db.ExecuteNonQueryAsync(
-                                "UPDATE fileProcessingStatus SET last_updated_utc = @last_updated_utc, modId = @modId, fileId = @fileId WHERE gameId = @gameId",
-                                new SqlParameter("@last_updated_utc", latestUpdatedFile.FileDate),
-                                new SqlParameter("@modId", mod.Id),
-                                new SqlParameter("@fileId", latestUpdatedFile.Id),
+                            var existingGame = await db.ExecuteSingleRowAsync<FileProcessingStatus>(
+                                "SELECT * FROM fileProcessingStatus WHERE gameId = @gameId",
                                 new SqlParameter("@gameId", game.Id)
                             );
-                        }
 
+                            if (existingGame == null)
+                            {
+                                // New game, insert it
+                                await db.ExecuteNonQueryAsync(
+                                    "INSERT INTO fileProcessingStatus (last_updated_utc, gameId, modId, fileId) VALUES (@last_updated_utc, @gameId, @modId, @fileId)",
+                                    new SqlParameter("@last_updated_utc", latestUpdatedFile.FileDate),
+                                    new SqlParameter("@gameId", game.Id),
+                                    new SqlParameter("@modId", mod.Id),
+                                    new SqlParameter("@fileId", latestUpdatedFile.Id)
+                                );
+                            }
+                            else
+                            {
+                                // Existing game, update it
+                                await db.ExecuteNonQueryAsync(
+                                    "UPDATE fileProcessingStatus SET last_updated_utc = @last_updated_utc, modId = @modId, fileId = @fileId WHERE gameId = @gameId",
+                                    new SqlParameter("@last_updated_utc", latestUpdatedFile.FileDate),
+                                    new SqlParameter("@modId", mod.Id),
+                                    new SqlParameter("@fileId", latestUpdatedFile.Id),
+                                    new SqlParameter("@gameId", game.Id)
+                                );
+                            }
+                        }
                     }
                     else
                     {
