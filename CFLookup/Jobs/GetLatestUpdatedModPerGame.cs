@@ -54,7 +54,30 @@ namespace CFLookup.Jobs
                     4819, // American Truck Simulator
                     6351, // Mario Party 3
                     18237, // Staxel
+                    66004, // Starfield
+                    73492, // Kerbal Space Program 2
+                    78022, // Minecraft Bedrock
+                    78023, // Timber and Stone
+                    78072, // Hometopia
+                    78101, // Tiny Life
+                    78103, // art of rally
+                    78163, // Astro Colony
+                    78225, // The Anacrusis
+                    78251, // Kingshunt
+                    78496, // Hero's Tour
+                    79630, // GTA-SA
+                    79805, // CurseForge Demo
+                    80345, // Dwerve
+                    81975, // LEAP
+                    82010, // KSP QA Test Game
+                    82047, // Oaken
+                    82164, // Unity SDK Tester
+                    83357, // River City Girls 2
                     83374, // ARK
+                    83375, // Far Cry 6
+                    83444, // WorldBox - God Simulator
+                    83453, // Minecraft Legends
+                    83981, // Unreal Test Game
                 };
 
                 foreach (var privateGame in privateGames)
