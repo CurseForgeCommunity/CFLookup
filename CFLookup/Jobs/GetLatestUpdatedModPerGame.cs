@@ -78,6 +78,13 @@ namespace CFLookup.Jobs
                     83444, // WorldBox - God Simulator
                     83453, // Minecraft Legends
                     83981, // Unreal Test Game
+                    84529, // NighspadeTest001
+                    84530, // OWITestGame
+                    84610, // Test01
+                    84658, // AI M3
+                    84749, // Minecraft
+                    84801, // stopdeletingmystuffiamtesting
+                    84810, // Oaken_Testing
                 };
 
                 foreach (var privateGame in privateGames)
@@ -139,6 +146,10 @@ namespace CFLookup.Jobs
                                     new SqlParameter("@gameId", game.Id)
                                 );
                             }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"No updated files found for {game.Name} and mod {mod.Name}");
                         }
                     }
                     else
