@@ -92,7 +92,7 @@ public class Program
         builder.Services.AddScoped(x => new SqlConnection(dbConnectionString));
 
         builder.Services.AddScoped<MSSQLDB>();
-
+#if !DEBUG
         builder.Services.AddHangfire(configuration =>
         {
             configuration
@@ -108,7 +108,7 @@ public class Program
         builder.Services.AddHangfireServer(options =>
         {
         });
-
+#endif
         builder.Services.AddScoped(options =>
         {
             return new CurseForge.APIClient.ApiClient(cfApiKey, 201, "whatcfprojectisthat@nolifeking85.tv");
@@ -126,13 +126,10 @@ public class Program
         if (!app.Environment.IsDevelopment())
         {
             _ = app.UseExceptionHandler("/Error");
-            // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-            //app.UseHsts();
         }
 
         app.UseForwardedHeaders();
 
-        //app.UseHttpsRedirection();
         app.UseStaticFiles(new StaticFileOptions
         {
             OnPrepareResponse = ctx =>
@@ -170,8 +167,10 @@ public class Program
 
         app.MapDefaultControllerRoute();
 
+#if !DEBUG
         RecurringJob.AddOrUpdate("cflookup:GetLatestUpdatedModPerGame", () => GetLatestUpdatedModPerGame.RunAsync(null), "*/5 * * * *");
-        RecurringJob.AddOrUpdate("cflookup:SaveMinecraftModStats", () => SaveMinecraftModStats.RunAsync(null), "*/5 * * * *");
+        RecurringJob.AddOrUpdate("cflookup:SaveMinecraftModStats", () => SaveMinecraftModStats.RunAsync(null), Cron.Hourly());
+#endif
 
         app.Run();
     }
