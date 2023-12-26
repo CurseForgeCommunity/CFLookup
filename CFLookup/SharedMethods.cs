@@ -3,9 +3,10 @@ using CurseForge.APIClient.Models;
 using CurseForge.APIClient.Models.Files;
 using CurseForge.APIClient.Models.Games;
 using CurseForge.APIClient.Models.Mods;
-using Newtonsoft.Json;
 using StackExchange.Redis;
 using System.Collections.Concurrent;
+using System.Data;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace CFLookup
@@ -18,11 +19,11 @@ namespace CFLookup
 
             if (!cachedGames.IsNullOrEmpty)
             {
-                return JsonConvert.DeserializeObject<List<Game>>(cachedGames);
+                return JsonSerializer.Deserialize<List<Game>>(cachedGames);
             }
 
             var games = await _cfApiClient.GetGamesAsync();
-            await _redis.StringSetAsync("cf-games", JsonConvert.SerializeObject(games.Data), TimeSpan.FromMinutes(5));
+            await _redis.StringSetAsync("cf-games", JsonSerializer.Serialize(games.Data), TimeSpan.FromMinutes(5));
             return games.Data;
         }
 
@@ -32,11 +33,11 @@ namespace CFLookup
 
             if (!cachedGame.IsNullOrEmpty)
             {
-                return JsonConvert.DeserializeObject<Game>(cachedGame);
+                return JsonSerializer.Deserialize<Game>(cachedGame);
             }
 
             var games = await _cfApiClient.GetGameAsync(gameId);
-            await _redis.StringSetAsync($"cf-games-{gameId}", JsonConvert.SerializeObject(games.Data), TimeSpan.FromMinutes(5));
+            await _redis.StringSetAsync($"cf-games-{gameId}", JsonSerializer.Serialize(games.Data), TimeSpan.FromMinutes(5));
             return games.Data;
         }
 
@@ -46,13 +47,13 @@ namespace CFLookup
 
             if (!cachedCategories.IsNullOrEmpty)
             {
-                return JsonConvert.DeserializeObject<List<Category>>(cachedCategories);
+                return JsonSerializer.Deserialize<List<Category>>(cachedCategories);
             }
 
             var gameId = gameInfo.FirstOrDefault(x => x.Slug.Equals(game, StringComparison.InvariantCultureIgnoreCase))?.Id;
 
             var categories = await _cfApiClient.GetCategoriesAsync(gameId);
-            await _redis.StringSetAsync($"cf-categories-{game}", JsonConvert.SerializeObject(categories.Data), TimeSpan.FromMinutes(5));
+            await _redis.StringSetAsync($"cf-categories-{game}", JsonSerializer.Serialize(categories.Data), TimeSpan.FromMinutes(5));
 
             return categories.Data;
         }
@@ -63,7 +64,7 @@ namespace CFLookup
 
             if (!cachedFile.IsNullOrEmpty)
             {
-                return JsonConvert.DeserializeObject<(Mod mod, CurseForge.APIClient.Models.Files.File file, string changelog)>(cachedFile);
+                return JsonSerializer.Deserialize<(Mod mod, CurseForge.APIClient.Models.Files.File file, string changelog)>(cachedFile);
             }
 
             var file = await _cfApiClient.GetFilesAsync(new GetModFilesRequestBody
@@ -78,7 +79,7 @@ namespace CFLookup
 
             var changelog = await _cfApiClient.GetModFileChangelogAsync(file.Data[0].ModId, fileId);
 
-            await _redis.StringSetAsync($"cf-fileinfo-{fileId}", JsonConvert.SerializeObject((mod.Data, file.Data[0], changelog.Data)), TimeSpan.FromMinutes(5));
+            await _redis.StringSetAsync($"cf-fileinfo-{fileId}", JsonSerializer.Serialize((mod.Data, file.Data[0], changelog.Data)), TimeSpan.FromMinutes(5));
 
             return (mod.Data, file.Data[0], changelog.Data);
         }
@@ -89,11 +90,11 @@ namespace CFLookup
 
             if (!cachedCategories.IsNullOrEmpty)
             {
-                return JsonConvert.DeserializeObject<List<Category>>(cachedCategories);
+                return JsonSerializer.Deserialize<List<Category>>(cachedCategories);
             }
 
             var categories = await _cfApiClient.GetCategoriesAsync(gameId);
-            await _redis.StringSetAsync($"cf-categories-id-{gameId}", JsonConvert.SerializeObject(categories.Data), TimeSpan.FromMinutes(5));
+            await _redis.StringSetAsync($"cf-categories-id-{gameId}", JsonSerializer.Serialize(categories.Data), TimeSpan.FromMinutes(5));
             await Task.Delay(25);
             return categories.Data;
         }
@@ -103,12 +104,12 @@ namespace CFLookup
             var cachedMods = await _redis.StringGetAsync($"cf-mods-{string.Join('-', modIds)}");
             if (!cachedMods.IsNullOrEmpty)
             {
-                return JsonConvert.DeserializeObject<List<Mod>>(cachedMods);
+                return JsonSerializer.Deserialize<List<Mod>>(cachedMods);
             }
 
             var mods = await _cfApiClient.GetModsByIdListAsync(new GetModsByIdsListRequestBody { ModIds = modIds });
 
-            await _redis.StringSetAsync($"cf-mods-{string.Join('-', modIds)}", JsonConvert.SerializeObject(mods.Data), TimeSpan.FromMinutes(5));
+            await _redis.StringSetAsync($"cf-mods-{string.Join('-', modIds)}", JsonSerializer.Serialize(mods.Data), TimeSpan.FromMinutes(5));
 
             return mods.Data;
         }
@@ -123,7 +124,7 @@ namespace CFLookup
                     return null;
                 }
 
-                return JsonConvert.DeserializeObject<Mod>(modResultCache); ;
+                return JsonSerializer.Deserialize<Mod>(modResultCache); ;
             }
 
             try
@@ -142,7 +143,7 @@ namespace CFLookup
                     modResult.Data.Name = projectName;
                 }*/
 
-                var modJson = JsonConvert.SerializeObject(modResult.Data);
+                var modJson = JsonSerializer.Serialize(modResult.Data);
 
                 await _redis.StringSetAsync($"cf-mod-{projectId}", modJson, TimeSpan.FromMinutes(5));
 
@@ -164,7 +165,7 @@ namespace CFLookup
                     return null;
                 }
 
-                var obj = JsonConvert.DeserializeObject<GenericListResponse<CurseForge.APIClient.Models.Files.File>>(modResultCache);
+                var obj = JsonSerializer.Deserialize<GenericListResponse<CurseForge.APIClient.Models.Files.File>>(modResultCache);
 
                 if (obj?.Data.Count > 0)
                 {
@@ -181,7 +182,7 @@ namespace CFLookup
 
                 if (modResult.Data.Count > 0)
                 {
-                    var modJson = JsonConvert.SerializeObject(modResult);
+                    var modJson = JsonSerializer.Serialize(modResult);
                     await _redis.StringSetAsync($"cf-file-{fileId}", modJson, TimeSpan.FromMinutes(5));
 
                     return modResult.Data[0].ModId;
@@ -205,7 +206,7 @@ namespace CFLookup
                     return null;
                 }
 
-                var cachedMod = JsonConvert.DeserializeObject<Mod>(cachedResponse);
+                var cachedMod = JsonSerializer.Deserialize<Mod>(cachedResponse);
 
                 return cachedMod;
             }
@@ -227,7 +228,7 @@ namespace CFLookup
 
             if (mod.Data.Count == 1)
             {
-                await _redis.StringSetAsync($"cf-mod-{game}-{category}-{slug}", JsonConvert.SerializeObject(mod.Data[0]), TimeSpan.FromMinutes(5));
+                await _redis.StringSetAsync($"cf-mod-{game}-{category}-{slug}", JsonSerializer.Serialize(mod.Data[0]), TimeSpan.FromMinutes(5));
                 return mod.Data[0];
             }
 
@@ -244,7 +245,7 @@ namespace CFLookup
                     return null;
                 }
 
-                var cachedMod = JsonConvert.DeserializeObject<ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, long>>>(cachedResponse);
+                var cachedMod = JsonSerializer.Deserialize<ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, long>>>(cachedResponse);
 
                 return cachedMod;
             }
@@ -297,7 +298,7 @@ namespace CFLookup
 
             await Task.WhenAll(versionTasks);
 
-            await _redis.StringSetAsync("cf-mcmod-stats", JsonConvert.SerializeObject(mcVersionModCount), TimeSpan.FromHours(1));
+            await _redis.StringSetAsync("cf-mcmod-stats", JsonSerializer.Serialize(mcVersionModCount), TimeSpan.FromHours(1));
 
             return mcVersionModCount;
         }
@@ -312,7 +313,7 @@ namespace CFLookup
                     return null;
                 }
 
-                var cachedMod = JsonConvert.DeserializeObject<ConcurrentDictionary<string, long>>(cachedResponse);
+                var cachedMod = JsonSerializer.Deserialize<ConcurrentDictionary<string, long>>(cachedResponse);
 
                 return cachedMod;
             }
@@ -348,9 +349,23 @@ namespace CFLookup
 
             await Task.WhenAll(versionTasks);
 
-            await _redis.StringSetAsync("cf-mcmodpack-stats", JsonConvert.SerializeObject(mcVersionModCount), TimeSpan.FromHours(1));
+            await _redis.StringSetAsync("cf-mcmodpack-stats", JsonSerializer.Serialize(mcVersionModCount), TimeSpan.FromHours(1));
 
             return mcVersionModCount;
+        }
+
+        public static async Task<Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>> GetMinecraftStatsOverTime(MSSQLDB _db, int datapoints = 1000)
+        {
+            var stats = await _db.ExecuteDataTableAsync($"SELECT TOP {datapoints} * FROM MinecraftModStatsOverTime ORDER BY statId DESC");
+            var Stats = new Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>();
+            foreach (DataRow row in stats.Rows)
+            {
+                var timestamp = row.Field<DateTimeOffset>("timestamp_utc");
+                var gameStats = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, long>>>(row.Field<string>("stats")!)!;
+                Stats.Add(timestamp, gameStats);
+            }
+
+            return Stats;
         }
 
         public static string GetProjectNameFromFile(string url)

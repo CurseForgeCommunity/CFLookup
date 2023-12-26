@@ -13,14 +13,16 @@ namespace CFLookup
     {
         private readonly ApiClient _cfApiClient;
         private readonly IDatabaseAsync _redis;
+        private readonly MSSQLDB _db;
 
         public ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, long>> MinecraftStats = new();
         public TimeSpan? CacheExpiration { get; set; }
 
-        public StatsController(ApiClient cfApiClient, ConnectionMultiplexer connectionMultiplexer)
+        public StatsController(ApiClient cfApiClient, ConnectionMultiplexer connectionMultiplexer, MSSQLDB db)
         {
             _cfApiClient = cfApiClient;
             _redis = connectionMultiplexer.GetDatabase(5);
+            _db = db;
         }
 
         [HttpGet("Minecraft/ModStats.json")]
@@ -49,6 +51,14 @@ namespace CFLookup
                 Stats = minecraftStats,
                 CacheExpiration = GetTruncatedTime(cacheExpiration.Value)
             });
+        }
+
+        [HttpGet("Minecraft/ModStatsOverTime.json")]
+        public async Task<IActionResult> MinecraftModStatsOverTime()
+        {
+            var stats = await SharedMethods.GetMinecraftStatsOverTime(_db);
+
+            return new JsonResult(stats);
         }
 
         private static DateTimeOffset GetTruncatedTime(TimeSpan timeSpan)
