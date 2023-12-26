@@ -2,6 +2,7 @@
 using CurseForge.APIClient;
 using CurseForge.APIClient.Models.Games;
 using CurseForge.APIClient.Models.Mods;
+using Hangfire;
 using Hangfire.Server;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
@@ -10,6 +11,7 @@ using System.Text;
 
 namespace CFLookup.Jobs
 {
+    [AutomaticRetry(Attempts = 0)]
     public class GetLatestUpdatedModPerGame
     {
         public static async Task RunAsync(PerformContext context)
