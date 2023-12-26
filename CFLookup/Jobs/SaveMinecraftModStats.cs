@@ -51,7 +51,6 @@ namespace CFLookup.Jobs
                 {
                     { "Forge", ModLoaderType.Forge },
                     { "Fabric", ModLoaderType.Fabric },
-                    { "LiteLoader", ModLoaderType.LiteLoader },
                     { "Quilt", ModLoaderType.Quilt },
                     { "NeoForge", (ModLoaderType)6 }
                 };
