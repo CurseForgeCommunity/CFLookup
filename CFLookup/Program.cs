@@ -170,9 +170,8 @@ public class Program
 
         app.MapDefaultControllerRoute();
 
-        //await GetLatestUpdatedModPerGame.RunAsync(null);
-
         RecurringJob.AddOrUpdate("cflookup:GetLatestUpdatedModPerGame", () => GetLatestUpdatedModPerGame.RunAsync(null), "*/5 * * * *");
+        RecurringJob.AddOrUpdate("cflookup:SaveMinecraftModStats", () => SaveMinecraftModStats.RunAsync(null), "*/5 * * * *");
 
         app.Run();
     }
