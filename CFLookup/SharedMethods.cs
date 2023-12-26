@@ -71,7 +71,7 @@ namespace CFLookup
                 FileIds = new List<int> { fileId }
             });
 
-            if(file.Data.Count == 0)
+            if (file.Data.Count == 0)
                 return (null, null, null);
 
             var mod = await _cfApiClient.GetModAsync(file.Data[0].ModId);
@@ -358,12 +358,22 @@ namespace CFLookup
             return Path.GetFileName(url);
         }
 
-        public static string ToHumanReadableFormat(this TimeSpan timeSpan)
+        public static string ToHumanReadableFormat(this TimeSpan timeSpan, bool shortText = false, double skipMinutesAfterHours = 24.0f, double skipSecondsAfterHours = 1.0f)
         {
-            return timeSpan.TotalSeconds <= 0 ? "0 seconds" : string.Format("{0}{1}{2}",
-                timeSpan.Hours > 0 ? string.Format($"{timeSpan.Hours:n0} hour{{0}}, ", timeSpan.Hours != 1 ? "s" : string.Empty) : string.Empty,
-                timeSpan.Minutes > 0 ? string.Format($"{timeSpan.Minutes:n0} minute{{0}}, ", timeSpan.Minutes != 1 ? "s" : string.Empty) : string.Empty,
-                timeSpan.Seconds > 0 ? string.Format($"{timeSpan.Seconds:n0} second{{0}}", timeSpan.Seconds != 1 ? "s" : string.Empty) : string.Empty
+            var secondText = shortText ? "s" : " second" + (timeSpan.Seconds != 1 ? "s" : string.Empty);
+            var minuteText = shortText ? "m" : " minute" + (timeSpan.Minutes != 1 ? "s" : string.Empty);
+            var hourText = shortText ? "h" : " hour" + (timeSpan.Hours != 1 ? "s" : string.Empty);
+            var dayText = shortText ? "d" : " day" + (timeSpan.Days != 1 ? "s" : string.Empty);
+
+            return timeSpan.TotalSeconds <= 0 ? "0 seconds" : string.Format("{0}{1}{2}{3}",
+                timeSpan.Days > 0 ? $"{timeSpan.Days:n0}{dayText}, " : string.Empty,
+                timeSpan.Hours > 0 ? $"{timeSpan.Hours:n0}{hourText}, " : string.Empty,
+                timeSpan.TotalHours <= skipMinutesAfterHours ?
+                    timeSpan.Minutes > 0 ? $"{timeSpan.Minutes:n0}{minuteText}, " : string.Empty :
+                    string.Empty,
+                timeSpan.TotalHours <= skipSecondsAfterHours ?
+                    timeSpan.Seconds > 0 ? $"{timeSpan.Seconds:n0}{secondText}" : string.Empty :
+                    string.Empty
             ).Trim(new[] { ' ', ',' });
         }
     }

@@ -1,6 +1,5 @@
 using CFLookup.Models;
 using CurseForge.APIClient;
-using CurseForge.APIClient.Models.Files;
 using CurseForge.APIClient.Models.Games;
 using CurseForge.APIClient.Models.Mods;
 using Microsoft.AspNetCore.Mvc;
@@ -29,11 +28,11 @@ namespace CFLookup.Pages
         {
             var gameProcessingInfo = await _db.ExecuteListAsync<FileProcessingStatus>("SELECT * FROM fileProcessingStatus ORDER BY last_updated_utc DESC");
 
-            foreach(var info in gameProcessingInfo)
+            foreach (var info in gameProcessingInfo)
             {
                 Game game;
                 var gameCache = await _redis.StringGetAsync($"cf-game-{info.GameId}");
-                if(!gameCache.IsNullOrEmpty)
+                if (!gameCache.IsNullOrEmpty)
                 {
                     game = JsonSerializer.Deserialize<Game>(gameCache)!;
                 }
@@ -45,7 +44,7 @@ namespace CFLookup.Pages
 
                 Mod mod;
                 var modCache = await _redis.StringGetAsync($"cf-mod-{info.ModId}");
-                if(!modCache.IsNullOrEmpty)
+                if (!modCache.IsNullOrEmpty)
                 {
                     mod = JsonSerializer.Deserialize<Mod>(modCache)!;
                 }
@@ -57,7 +56,7 @@ namespace CFLookup.Pages
 
                 CurseForge.APIClient.Models.Files.File file;
                 var fileCache = await _redis.StringGetAsync($"cf-file-{info.FileId}");
-                if(!fileCache.IsNullOrEmpty)
+                if (!fileCache.IsNullOrEmpty)
                 {
                     file = JsonSerializer.Deserialize<CurseForge.APIClient.Models.Files.File>(fileCache)!;
                 }
@@ -88,5 +87,6 @@ namespace CFLookup.Pages
         public Mod Mod { get; set; }
         public CurseForge.APIClient.Models.Files.File File { get; set; }
         public DateTimeOffset LatestUpdatedUtc { get; set; }
+        public TimeSpan SinceLatestUpdate => DateTimeOffset.UtcNow - LatestUpdatedUtc;
     }
 }

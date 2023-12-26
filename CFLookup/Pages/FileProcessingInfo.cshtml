@@ -14,15 +14,15 @@
             <th scope="col" class="text-end">Latest update</th>
         </tr>
     </thead>
+    <tbody>
     @foreach (var row in Model.ModFiles)
     {
-        <tbody>
-            <tr>
-                <td scope="row"><a href="https://www.curseforge.com/@row.Game.Slug" target="_blank">@row.Game.Name</a></td>
-                <td><a href="@row.Mod.Links.WebsiteUrl" target="_blank">@row.Mod.Name</a></td>
-                <td><a href="@row.Mod.Links.WebsiteUrl/files/@row.File.Id" target="_blank">@row.File.FileName</a></td>
-                <td class="text-end">@row.LatestUpdatedUtc</td>
-            </tr>
-        </tbody>
+        <tr>
+            <td scope="row"><a href="https://www.curseforge.com/@row.Game.Slug" target="_blank">@row.Game.Name</a></td>
+            <td><a href="@row.Mod.Links.WebsiteUrl" target="_blank">@row.Mod.Name</a></td>
+            <td><a href="@row.Mod.Links.WebsiteUrl/files/@row.File.Id" target="_blank">@row.File.FileName</a></td>
+            <td class="text-end" title="@row.LatestUpdatedUtc">@row.SinceLatestUpdate.ToHumanReadableFormat(true) ago</td>
+        </tr>
     }
+    </tbody>
 </table>
