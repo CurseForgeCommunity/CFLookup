@@ -14,8 +14,8 @@
 
         function drawMinecraftChart() {
             var data = google.visualization.arrayToDataTable([
-                ['Modloader', 'Forge', 'Fabric', 'Quilt', { role: 'annotation' }],
-        @Html.Raw(string.Join(",\n\t\t", modData.Select(i => $"['{i.Key.Replace("Minecraft ", "")}', {i.Value[ModLoaderType.Forge]}, {i.Value[ModLoaderType.Fabric]}, {i.Value[ModLoaderType.Quilt]}, '']")))
+                ['Modloader', 'Forge', 'Fabric', 'Quilt', 'NeoForge', { role: 'annotation' }],
+        @Html.Raw(string.Join(",\n\t\t", modData.Select(i => $"['{i.Key.Replace("Minecraft ", "")}', {i.Value[ModLoaderType.Forge]}, {i.Value[ModLoaderType.Fabric]}, {i.Value[ModLoaderType.Quilt]}, {i.Value[(ModLoaderType)6]}, '']")))
                     ]);
 
             var options = {
@@ -61,10 +61,12 @@
             <th scope="col" class="text-end">Forge</th>
             <th scope="col" class="text-end">Fabric</th>
             <th scope="col" class="text-end">Quilt</th>
+            <th scope="col" class="text-end">NeoForge</th>
         </tr>
     </thead>
     <tbody>
-            @Html.Raw(string.Join("\n", modData.Select(d => $"<tr><td scope=\"row\">{d.Key}</td><td class=\"text-end\">{d.Value[ModLoaderType.Forge].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Fabric].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Quilt].ToString("n0")}</td></tr>")))
+            @Html.Raw(string.Join("\n", modData.Select(d =>
+        $"<tr><td scope=\"row\">{d.Key}</td><td class=\"text-end\">{d.Value[ModLoaderType.Forge].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Fabric].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Quilt].ToString("n0")}</td><td class=\"text-end\">{d.Value[(ModLoaderType)6].ToString("n0")}</td></tr>")))
     </tbody>
 </table>
 <hr />

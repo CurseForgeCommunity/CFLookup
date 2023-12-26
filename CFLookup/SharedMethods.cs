@@ -265,6 +265,7 @@ namespace CFLookup
                 ModLoaderType.Forge,
                 ModLoaderType.Fabric,
                 ModLoaderType.Quilt,
+                (ModLoaderType)6 // NeoForge
             };
 
             var versionTasks = minecraftVersions.Select(async mcVersion =>
