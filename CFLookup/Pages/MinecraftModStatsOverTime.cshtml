@@ -7,112 +7,80 @@
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script>
         google.charts.load('current', { packages: ['linechart'] });
-        google.charts.setOnLoadCallback(drawMinecraftChart);
+        google.charts.setOnLoadCallback(drawAllCharts);
 
-        function drawMinecraftChart() {
-            var data = new google.visualization.DataTable();
-
-            data.addColumn('datetime', 'Time');
-            data.addColumn('string', 'Game version');
-            data.addColumn('number', 'Forge');
-            data.addColumn('number', 'Fabric');
-            data.addColumn('number', 'Quilt');
-            data.addColumn('number', 'NeoForge');
-
-            const jsonData = @Html.Raw(Json.Serialize(Model.Stats));
-
-            for(var stat in jsonData)
+        function drawAllCharts() {
+            @foreach(var stat in Model.Stats)
             {
-                let rowData = jsonData[stat];
-                for(var gameVersion in rowData)
-                {
-                    let row = [];
-                    row.push(new Date(stat));
-                    row.push(gameVersion);
-                    row.push(rowData[gameVersion]["Forge"]);
-                    row.push(rowData[gameVersion]["Fabric"]);
-                    row.push(rowData[gameVersion]["Quilt"]);
-                    row.push(rowData[gameVersion]["NeoForge"]);
+                <text>drawMinecraft</text>@stat.Key<text>Chart();</text>
+            }
+        }
+        @foreach(var stat in Model.Stats)
+        {
+            <text>
+            function drawMinecraft</text>@stat.Key<text>Chart() {
+                var data = new google.visualization.DataTable();
 
+                data.addColumn('datetime', 'Time');
+                @foreach(var gameVersion in stat.Value.FirstOrDefault().Value.Keys)
+                {
+                    <text>data.addColumn('number', '@gameVersion');</text>
+                }
+
+                const jsonData = @Html.Raw(Json.Serialize(stat.Value));
+
+                for(var stat in jsonData)
+                {
+                    let rowData = jsonData[stat];
+                    
+                    let row = [];
+
+                    row.push(new Date(stat));
+
+                    for(var gameVersion in rowData)
+                    {
+                        row.push(rowData[gameVersion]);
+                    }
                     console.log(row);
                     data.addRow(row);
                 }
-            }
             
-            var options = {
-                title: 'Number of Minecraft mods per game version, per mod loader',
-                height: '700',
-                width: '100%',
-                isStacked: true,
-                legend: {
-                    position: 'bottom',
-                    textStyle: { color: '#6c757d' }
-                },
-                vAxis: {
-                    title: 'Minecraft game version',
-                    titleTextStyle: { color: '#6c757d' },
-                    textStyle: { color: '#6c757d' },
-                    gridlines: { color: '#787878' }
-                },
-                backgroundColor: { fill: 'transparent' },
-                titleTextStyle: {
-                    color: '#fff'
-                },
-                hAxis: {
-                    textStyle: { color: '#6c757d' },
-                    titleTextStyle: { color: '#6c757d' },
-                    gridlines: { color: '#787878' },
-                    title: 'Time'
-                }
-            };
+                var options = {
+                    title: 'Number of Minecraft mods per game version, @stat.Key',
+                    height: '700',
+                    width: '100%',
+                    isStacked: true,
+                    legend: {
+                        position: 'bottom',
+                        textStyle: { color: '#6c757d' }
+                    },
+                    vAxis: {
+                        title: 'Minecraft game version',
+                        titleTextStyle: { color: '#6c757d' },
+                        textStyle: { color: '#6c757d' },
+                        gridlines: { color: '#787878' }
+                    },
+                    backgroundColor: { fill: 'transparent' },
+                    titleTextStyle: {
+                        color: '#fff'
+                    },
+                    hAxis: {
+                        textStyle: { color: '#6c757d' },
+                        titleTextStyle: { color: '#6c757d' },
+                        gridlines: { color: '#787878' },
+                        title: 'Time'
+                    }
+                };
 
-            var chart = new google.visualization.LineChart(document.getElementById('minecraft-version-modloader'));
+                var chart = new google.visualization.LineChart(document.getElementById('minecraft-version-modloader-@stat.Key'));
 
-            chart.draw(data, options);
+                chart.draw(data, options);
+            }
+            </text>
         }
     </script>
 }
-
-<div id="minecraft-version-modloader"></div>
-
-<table class="table table-dark table-striped table-condensed">
-    <thead>
-        <tr>
-            <th scope="col">Timestamp</th>
-            <th scope="col" class="text-end">VersionInfo</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach(var stat in Model.Stats)
-        {
-            <tr>
-                <td scope="row">@stat.Key</td>
-                <td>
-                    <table class="table table-dark table-striped table-condensed">
-                        <thead>
-                            <tr>
-                                <th scope="col">Game version</th>
-                                <th scope="col">Forge</th>
-                                <th scope="col">Fabric</th>
-                                <th scope="col">Quilt</th>
-                                <th scope="col">NeoForge</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach(var gameVersion in stat.Value)
-                            {
-                                <tr>
-                                    <td scope="row">@gameVersion.Key</td>
-                                    <td>@gameVersion.Value["Forge"].ToString("n0")</td>
-                                    <td>@gameVersion.Value["Fabric"].ToString("n0")</td>
-                                    <td>@gameVersion.Value["Quilt"].ToString("n0")</td>
-                                    <td>@gameVersion.Value["NeoForge"].ToString("n0")</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+@foreach(var stat in Model.Stats)
+{
+    <div id="minecraft-version-modloader-@stat.Key"></div>
+}
