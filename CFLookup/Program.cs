@@ -137,7 +137,7 @@ public class Program
                 ctx.Context.Response.Headers.Append("Cache-Control", $"public, max-age={60 * 60 * 24 * 30}");
             }
         });
-
+#if !DEBUG
         app.UseHangfireDashboard("/hangfire", new DashboardOptions
         {
             Authorization = new[]
@@ -158,7 +158,7 @@ public class Program
                 })
             }
         });
-
+#endif
         app.UseRouting();
 
         app.UseAuthorization();

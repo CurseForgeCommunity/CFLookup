@@ -58,7 +58,7 @@ namespace CFLookup
         {
             var stats = await SharedMethods.GetMinecraftStatsOverTime(_db);
 
-            return new JsonResult(stats);
+            return new JsonResult(stats.ToArray());
         }
 
         private static DateTimeOffset GetTruncatedTime(TimeSpan timeSpan)

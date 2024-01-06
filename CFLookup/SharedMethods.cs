@@ -356,7 +356,7 @@ namespace CFLookup
 
         public static async Task<Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>> GetMinecraftStatsOverTime(MSSQLDB _db, int datapoints = 1000)
         {
-            var stats = await _db.ExecuteDataTableAsync($"SELECT TOP {datapoints} * FROM MinecraftModStatsOverTime ORDER BY statId DESC");
+            var stats = await _db.ExecuteDataTableAsync($"SELECT TOP {datapoints} * FROM MinecraftModStatsOverTime ORDER BY statId ASC");
             var Stats = new Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>();
             foreach (DataRow row in stats.Rows)
             {
