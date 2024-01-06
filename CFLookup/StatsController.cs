@@ -58,7 +58,68 @@ namespace CFLookup
         {
             var stats = await SharedMethods.GetMinecraftStatsOverTime(_db);
 
-            return new JsonResult(stats.ToArray());
+            return new JsonResult(stats);
+        }
+
+        [HttpGet("Minecraft/ModStatsOverTime.v2.json")]
+        public async Task<IActionResult> MinecraftModStatsOverTimeV2()
+        {
+            var stats = await SharedMethods.GetMinecraftStatsOverTime(_db);
+
+            var modloaderStats = new Dictionary<string, List<GameVersionTimestampInfo>>();
+
+            foreach (var stat in stats)
+            {
+                var date = stat.Key;
+                foreach (var modloaderHolder in stat.Value)
+                {
+                    var gameVersion = modloaderHolder.Key;
+
+                    if (gameVersion.Contains("Snapshot")) continue;
+
+                    foreach (var gameInfo in modloaderHolder.Value)
+                    {
+                        var modloader = gameInfo.Key;
+                        var count = gameInfo.Value;
+
+                        if (modloader.Contains("LiteLoader")) continue;
+
+                        if (!modloaderStats.ContainsKey(modloader))
+                        {
+                            modloaderStats[modloader] = new List<GameVersionTimestampInfo>();
+                        }
+
+                        if (!modloaderStats[modloader].Any(gvt => gvt.Timestamp == date))
+                        {
+                            modloaderStats[modloader].Add(new GameVersionTimestampInfo
+                            {
+                                Timestamp = date
+                            });
+                        }
+
+                        var gameVersionInfo = modloaderStats[modloader].First(gvt => gvt.Timestamp == date);
+                        gameVersionInfo.GameVersionInfo.Add(new GameVersionInfo
+                        {
+                            GameVersion = gameVersion,
+                            Count = count
+                        });
+                    }
+                }
+            }
+
+            return new JsonResult(modloaderStats);
+        }
+
+        public class GameVersionTimestampInfo
+        {
+            public DateTimeOffset Timestamp { get; set; }
+            public List<GameVersionInfo> GameVersionInfo { get; set; } = new List<GameVersionInfo>();
+        }
+
+        public class GameVersionInfo
+        {
+            public string GameVersion { get; set; }
+            public long Count { get; set; }
         }
 
         private static DateTimeOffset GetTruncatedTime(TimeSpan timeSpan)
