@@ -89,17 +89,9 @@ namespace CFLookup
                             modloaderStats[modloader] = new List<GameVersionTimestampInfo>();
                         }
 
-                        if (!modloaderStats[modloader].Any(gvt => gvt.Timestamp == date))
+                        modloaderStats[modloader].Add(new GameVersionTimestampInfo
                         {
-                            modloaderStats[modloader].Add(new GameVersionTimestampInfo
-                            {
-                                Timestamp = date
-                            });
-                        }
-
-                        var gameVersionInfo = modloaderStats[modloader].First(gvt => gvt.Timestamp == date);
-                        gameVersionInfo.GameVersionInfo.Add(new GameVersionInfo
-                        {
+                            Timestamp = date,
                             GameVersion = gameVersion,
                             Count = count
                         });
@@ -113,11 +105,6 @@ namespace CFLookup
         public class GameVersionTimestampInfo
         {
             public DateTimeOffset Timestamp { get; set; }
-            public List<GameVersionInfo> GameVersionInfo { get; set; } = new List<GameVersionInfo>();
-        }
-
-        public class GameVersionInfo
-        {
             public string GameVersion { get; set; }
             public long Count { get; set; }
         }
