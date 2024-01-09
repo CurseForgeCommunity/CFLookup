@@ -42,7 +42,7 @@ namespace CFLookup.Pages
                     await _redis.StringSetAsync($"cf-game-{info.GameId}", JsonSerializer.Serialize(game), TimeSpan.FromDays(1));
                 }
 
-                Mod? mod;
+                Mod? mod = null;
                 var modCache = await _redis.StringGetAsync($"cf-mod-{info.ModId}");
                 if (!modCache.IsNullOrEmpty)
                 {
@@ -50,8 +50,19 @@ namespace CFLookup.Pages
                 }
                 else
                 {
-                    mod = (await _cfApiClient.GetModAsync(info.ModId))?.Data;
-                    await _redis.StringSetAsync($"cf-mod-{info.ModId}", JsonSerializer.Serialize(mod), TimeSpan.FromDays(1));
+                    try
+                    {
+                        mod = (await _cfApiClient.GetModAsync(info.ModId))?.Data;
+                        if (mod != null)
+                        {
+                            await _redis.StringSetAsync($"cf-mod-{info.ModId}", JsonSerializer.Serialize(mod), TimeSpan.FromDays(1));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Problem fetching mod with id: {info.ModId}");
+                        Console.WriteLine(ex.ToString());
+                    }
                 }
 
                 CurseForge.APIClient.Models.Files.File file;
