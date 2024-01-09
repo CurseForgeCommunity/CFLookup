@@ -100,7 +100,7 @@ namespace CFLookup.Jobs
 
                 foreach (var game in allGames)
                 {
-                    Console.WriteLine($"Starting to check for latest updated mod for {game.Name}");
+                    Console.WriteLine($"Starting to check for latest updated mod for {game.Name} (GameId: {game.Id})");
                     await _db.StringSetAsync($"cf-game-{game.Id}", JsonSerializer.Serialize(game), TimeSpan.FromDays(1));
 
                     var latestUpdatedMod = await cfClient.SearchModsAsync(game.Id, sortField: ModsSearchSortField.LastUpdated, sortOrder: ModsSearchSortOrder.Descending, pageSize: 1);
@@ -110,7 +110,7 @@ namespace CFLookup.Jobs
                         var latestUpdatedFile = mod.LatestFiles.OrderByDescending(f => f.FileDate).FirstOrDefault();
                         if (latestUpdatedFile != null)
                         {
-                            Console.WriteLine($"Latest updated mod for {game.Name} is {mod.Name} with {mod.DownloadCount} downloads and the latest file was updated {latestUpdatedFile.FileDate}");
+                            Console.WriteLine($"Latest updated mod for {game.Name} (GameId: {game.Id}) is {mod.Name} (ModId: {mod.Id}) with {mod.DownloadCount} downloads and the latest file was updated {latestUpdatedFile.FileDate}");
                             if (lastUpdatedMod < latestUpdatedFile.FileDate)
                             {
                                 lastUpdatedMod = latestUpdatedFile.FileDate;
