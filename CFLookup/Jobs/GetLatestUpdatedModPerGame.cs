@@ -87,6 +87,7 @@ namespace CFLookup.Jobs
                     84749, // Minecraft
                     84801, // stopdeletingmystuffiamtesting
                     84810, // Oaken_Testing
+                    85196, // Palworld
                 };
 
                 foreach (var privateGame in privateGames)
