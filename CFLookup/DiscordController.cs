@@ -62,7 +62,6 @@ namespace CFLookup
             {
                 case DiscordInteractionType.Ping:
                     {
-                        await RegisterDiscordCommandsAsync(discordAppId);
                         return new JsonResult(new DiscordPongResult());
                     }
                 case DiscordInteractionType.ApplicationCommand:
@@ -260,11 +259,6 @@ namespace CFLookup
                     }
                 }
             };
-        }
-
-        private async Task RegisterDiscordCommandsAsync(string discordAppId)
-        {
-            var _hc = _httpClientFactory.CreateClient();
         }
 
         private static byte[] GetBytesFromHexString(string hex)
