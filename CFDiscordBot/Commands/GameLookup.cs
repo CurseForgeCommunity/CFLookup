@@ -11,7 +11,7 @@ namespace CFDiscordBot.Commands
             int gameId
         )
         {
-            CurseForge.APIClient.Models.Games.Game gameInfo = null;
+            CurseForge.APIClient.Models.Games.Game? gameInfo = null;
             try
             {
                 var game = await apiClient.GetGameAsync(gameId);

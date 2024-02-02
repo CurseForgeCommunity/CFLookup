@@ -13,9 +13,18 @@ namespace CFDiscordBot.Commands
             int projectId
         )
         {
-            var project = await apiClient.GetModAsync(projectId);
+            CurseForge.APIClient.Models.Mods.Mod? mod = null;
+            try
+            {
+                var project = await apiClient.GetModAsync(projectId);
+                mod = project.Data;
+            }
+            catch
+            {
+                // Empty because, ugh
+            }
 
-            if (project is null)
+            if (mod is null)
             {
                 await RespondAsync($"Project with id {projectId} was not found.", ephemeral: true);
 
@@ -23,8 +32,6 @@ namespace CFDiscordBot.Commands
                 await Context.Interaction.DeleteOriginalResponseAsync();
                 return;
             }
-
-            var mod = project.Data;
 
             //var modFiles = new List<CurseForge.APIClient.Models.Files.File>();
 
@@ -87,7 +94,7 @@ namespace CFDiscordBot.Commands
             {
                 Title = "Project information",
                 Color = Color.DarkOrange,
-                Fields = new List<EmbedFieldBuilder>()
+                Fields = []
             };
 
             if (Uri.TryCreate(mod.Logo?.ThumbnailUrl, UriKind.Absolute, out var logoUri))
@@ -102,13 +109,13 @@ namespace CFDiscordBot.Commands
             var categories = string.Join(", ", mod.Categories.Select(c => $"[{c.Name}]({c.Url})"));
 
             var fields = new List<EmbedFieldBuilder> {
-                new EmbedFieldBuilder { Name = "Author", Value = string.Join(", ", mod.Authors.Select(c => $"[{c.Name}]({c.Url})")), IsInline = true },
-                new EmbedFieldBuilder { Name = "Status", Value = mod.Status.ToString(), IsInline = true },
-                new EmbedFieldBuilder { Name = "Created", Value = $"<t:{mod.DateCreated.ToUnixTimeSeconds()}:F>", IsInline = true },
-                new EmbedFieldBuilder { Name = "Modified", Value = $"<t:{mod.DateModified.ToUnixTimeSeconds()}:F>", IsInline = true },
-                new EmbedFieldBuilder { Name = "Released", Value = $"<t:{mod.DateReleased.ToUnixTimeSeconds()}:F>", IsInline = true },
-                new EmbedFieldBuilder { Name = "Downloads", Value = mod.DownloadCount.ToString("n0"), IsInline = true },
-                new EmbedFieldBuilder { Name = "Mod Distribution", Value = mod.AllowModDistribution ?? true ? "Allowed" : "Not allowed", IsInline = true },
+                new() { Name = "Author", Value = string.Join(", ", mod.Authors.Select(c => $"[{c.Name}]({c.Url})")), IsInline = true },
+                new() { Name = "Status", Value = mod.Status.ToString(), IsInline = true },
+                new() { Name = "Created", Value = $"<t:{mod.DateCreated.ToUnixTimeSeconds()}:F>", IsInline = true },
+                new() { Name = "Modified", Value = $"<t:{mod.DateModified.ToUnixTimeSeconds()}:F>", IsInline = true },
+                new() { Name = "Released", Value = $"<t:{mod.DateReleased.ToUnixTimeSeconds()}:F>", IsInline = true },
+                new() { Name = "Downloads", Value = mod.DownloadCount.ToString("n0"), IsInline = true },
+                new() { Name = "Mod Distribution", Value = mod.AllowModDistribution ?? true ? "Allowed" : "Not allowed", IsInline = true },
             };
 
             if (!string.IsNullOrWhiteSpace(categories))
