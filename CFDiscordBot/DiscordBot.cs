@@ -1,5 +1,4 @@
-﻿using CurseForge.APIClient;
-using Discord;
+﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
@@ -12,7 +11,6 @@ namespace CFDiscordBot
         ILogger logger,
         DiscordShardedClient discordClient,
         string botToken,
-        ApiClient apiClient,
         IServiceProvider serviceProvider
     ) : BackgroundService
     {

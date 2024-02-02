@@ -28,7 +28,6 @@ await Host.CreateDefaultBuilder(args)
                 x.GetRequiredService<ILogger<DiscordBot>>(),
                 x.GetRequiredService<DiscordShardedClient>(),
                 configuration["Discord:BotToken"]!,
-                x.GetRequiredService<ApiClient>(),
                 x
             )
         );
