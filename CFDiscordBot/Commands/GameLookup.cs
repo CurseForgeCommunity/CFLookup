@@ -49,7 +49,7 @@ namespace CFDiscordBot.Commands
                 embed.WithImageUrl(gameInfo.Assets.CoverUrl);
             }
 
-            await RespondAsync(embeds: new[] { embed.Build() }, ephemeral: true);
+            await RespondAsync(embeds: new[] { embed.Build() });
         }
     }
 }

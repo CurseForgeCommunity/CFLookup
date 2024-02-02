@@ -186,8 +186,7 @@ namespace CFDiscordBot.Commands
             await RespondAsync($"Project `{projectId}` is: **[{mod.Name}](https://cflookup.com/{projectId})**\n" +
                 $"{summaryText}",
                 embeds: new[] { projectEmbed.Build() },
-                components: buttons.Build(),
-                ephemeral: true
+                components: buttons.Build()
             );
         }
 
