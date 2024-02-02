@@ -22,10 +22,13 @@ namespace CFDiscordBot.Commands
                 return;
             }
 
+            var mods = await apiClient.SearchModsAsync(gameId, pageSize: 1);
+
             var embed = new EmbedBuilder()
                 .WithTitle(game.Data.Name)
-                .WithUrl($"https://curseforge.com/{game.Data.Slug}")
-                .WithColor(Color.Blue);
+                .WithDescription($"This game has {mods.Pagination.TotalCount:n0} mods available on CurseForge.")
+                .WithUrl($"https://www.curseforge.com/{game.Data.Slug}")
+                .WithColor(Color.DarkOrange);
 
             if (!string.IsNullOrWhiteSpace(game.Data.Assets.IconUrl))
             {
