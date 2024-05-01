@@ -68,7 +68,7 @@ namespace CFLookup.Pages
 
                         var allowedDistribution = new Dictionary<int, bool>();
 
-                        var unavailableProjects = GetUnavailableProjectsAsync(_cfApiClient, obj.Files.Select(f => new FileDependency
+                        var unavailableProjects = GetUnavailableProjectsAsync(_cfApiClient, obj.Files.Select(f => new CustomFileDependency
                         {
                             FileId = f.FileId,
                             ModId = f.ProjectId,
@@ -102,9 +102,9 @@ namespace CFLookup.Pages
 
         public HashSet<int> CheckedProjects = new();
 
-        public async IAsyncEnumerable<Mod> GetUnavailableProjectsAsync(ApiClient cfApiClient, List<FileDependency> files)
+        public async IAsyncEnumerable<Mod> GetUnavailableProjectsAsync(ApiClient cfApiClient, List<CustomFileDependency> files)
         {
-            var filteredList = new List<FileDependency>();
+            var filteredList = new List<CustomFileDependency>();
 
             foreach (var dep in files)
             {
@@ -152,6 +152,7 @@ namespace CFLookup.Pages
                 FileIds = filesWithAvailableProjects
             });
 
+            // TODO: Fix this to use the custom dependency class instead
             var filesWithRequiredDependencies = projectFiles.Data.Where(f => f.Dependencies.Any(d => d.RelationType == FileRelationType.RequiredDependency)).ToList();
             var dependencies = filesWithRequiredDependencies.SelectMany(f => f.Dependencies).Where(d => d.RelationType == FileRelationType.RequiredDependency).ToList();
 
@@ -160,11 +161,16 @@ namespace CFLookup.Pages
                 yield break;
             }
 
-            var subDependencyMods = GetUnavailableProjectsAsync(cfApiClient, dependencies);
-            await foreach (var dep in subDependencyMods)
-            {
-                yield return dep;
-            }
+            //var subDependencyMods = GetUnavailableProjectsAsync(cfApiClient, dependencies);
+            //await foreach (var dep in subDependencyMods)
+            //{
+            //    yield return dep;
+            //}
         }
+    }
+
+    public class CustomFileDependency : FileDependency
+    {
+        public int FileId { get; set; }
     }
 }
