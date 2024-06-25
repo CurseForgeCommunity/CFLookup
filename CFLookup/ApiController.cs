@@ -41,5 +41,25 @@ namespace CFLookup
                 return NotFound();
             }
         }
+
+        [HttpGet("/{projectId}.json")]
+        public async Task<IActionResult> GetProject(int projectId)
+        {
+            try
+            {
+                var project = await SharedMethods.SearchModAsync(_redis, _cfApiClient, projectId);
+
+                if (project == null)
+                {
+                    return NotFound();
+                }
+
+                return new JsonResult(project);
+            }
+            catch
+            {
+                return NotFound();
+            }
+        }
     }
 }
