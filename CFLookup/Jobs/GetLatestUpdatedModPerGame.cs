@@ -28,6 +28,7 @@ namespace CFLookup.Jobs
 
                 var allGames = new List<Game>();
                 var games = await cfClient.GetGamesAsync();
+                await Task.Delay(100);
                 if (games != null && games.Pagination.ResultCount > 0)
                 {
                     allGames.AddRange(games.Data);
@@ -36,6 +37,7 @@ namespace CFLookup.Jobs
                     {
                         index += games.Pagination.PageSize;
                         games = await cfClient.GetGamesAsync(index);
+                        await Task.Delay(100);
                         allGames.AddRange(games.Data);
                     }
                 }
@@ -206,6 +208,7 @@ namespace CFLookup.Jobs
                         {
                             allGames.Add(game.Data);
                         }
+                        await Task.Delay(100);
                     }
                 }
 
@@ -213,6 +216,8 @@ namespace CFLookup.Jobs
                 {
                     Console.WriteLine($"Starting to check for latest updated mod for {game.Name} (GameId: {game.Id})");
                     await _db.StringSetAsync($"cf-game-{game.Id}", JsonSerializer.Serialize(game), TimeSpan.FromDays(1));
+
+                    await Task.Delay(100);
 
                     var latestUpdatedMod = await cfClient.SearchModsAsync(game.Id, sortField: ModsSearchSortField.LastUpdated, sortOrder: ModsSearchSortOrder.Descending, pageSize: 1);
                     if (latestUpdatedMod != null && latestUpdatedMod.Pagination.ResultCount > 0)

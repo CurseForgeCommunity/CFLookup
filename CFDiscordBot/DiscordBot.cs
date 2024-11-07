@@ -43,7 +43,7 @@ namespace CFDiscordBot
             await interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), serviceProvider);
             await interactionService.RegisterCommandsGloballyAsync(true);
 
-            discordClient.InteractionCreated += DiscordClient_InteractionCreated; ;
+            discordClient.InteractionCreated += DiscordClient_InteractionCreated;
 
             logger.LogInformation("Slash commands registered");
         }
