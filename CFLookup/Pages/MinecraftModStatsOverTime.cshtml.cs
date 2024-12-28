@@ -1,7 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+using Highsoft.Web.Mvc.Stocks;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Data;
-using System.Text.Json;
 
 namespace CFLookup.Pages
 {
@@ -11,6 +9,8 @@ namespace CFLookup.Pages
 
         public Dictionary<string, Dictionary<DateTimeOffset, Dictionary<string, long>>> Stats { get; set; } = new Dictionary<string, Dictionary<DateTimeOffset, Dictionary<string, long>>>();
 
+        public Dictionary<string, List<Series>> ModLoaderStats = new Dictionary<string, List<Series>>();
+
         public MinecraftModStatsOverTimeModel(MSSQLDB db)
         {
             _db = db;
@@ -18,7 +18,7 @@ namespace CFLookup.Pages
 
         public async Task OnGetAsync()
         {
-            var stats = await SharedMethods.GetMinecraftStatsOverTime(_db);
+            var stats = await SharedMethods.GetMinecraftStatsOverTime(_db, 24 * 30);
 
             var modloaderStats = new Dictionary<string, Dictionary<DateTimeOffset, Dictionary<string, long>>>();
 
@@ -29,14 +29,14 @@ namespace CFLookup.Pages
                 {
                     var gameVersion = modloaderHolder.Key;
 
-                    if(gameVersion.Contains("Snapshot")) continue;
+                    if(gameVersion.Contains("snapshot", StringComparison.InvariantCultureIgnoreCase)) continue;
 
                     foreach(var gameInfo in modloaderHolder.Value)
                     {
                         var modloader = gameInfo.Key;
                         var count = gameInfo.Value;
 
-                        if(modloader.Contains("LiteLoader")) continue;
+                        if(modloader.Contains("LiteLoader", StringComparison.InvariantCultureIgnoreCase)) continue;
 
                         if (!modloaderStats.ContainsKey(modloader))
                         {
@@ -53,7 +53,40 @@ namespace CFLookup.Pages
                 }
             }
 
-            Stats = modloaderStats;
+            // Generate different series per modloader and game version for Highstock as separate graphs, where the game versions are the line series
+            var testGraph = new Dictionary<string, List<LineSeriesData>>();
+            var forgeData = modloaderStats["Forge"];
+
+            foreach(var d in forgeData)
+            {
+                var date = d.Key;
+                var gameVersions = d.Value;
+
+                foreach(var gameVersion in gameVersions)
+                {
+                    if (!testGraph.ContainsKey(gameVersion.Key))
+                    {
+                        testGraph[gameVersion.Key] = new List<LineSeriesData>();
+                    }
+
+                    testGraph[gameVersion.Key].Add(new LineSeriesData { X = date.ToUnixTimeMilliseconds(), Y = gameVersion.Value });
+                }
+            }
+
+            var viewData = new List<Series>();
+
+            foreach(var series in testGraph)
+            {
+                viewData.Add(new LineSeries
+                {
+                    Name = series.Key,
+                    Data = series.Value,
+                    TurboThreshold = 100,
+                    
+                });
+            }
+
+            ModLoaderStats["ForgeData"] = viewData;
         }
     }
 }

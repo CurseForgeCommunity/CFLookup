@@ -75,14 +75,14 @@ namespace CFLookup
                 {
                     var gameVersion = modloaderHolder.Key;
 
-                    if (gameVersion.Contains("Snapshot")) continue;
+                    if (gameVersion.Contains("Snapshot", StringComparison.InvariantCultureIgnoreCase)) continue;
 
                     foreach (var gameInfo in modloaderHolder.Value)
                     {
                         var modloader = gameInfo.Key;
                         var count = gameInfo.Value;
 
-                        if (modloader.Contains("LiteLoader")) continue;
+                        if (modloader.Contains("LiteLoader", StringComparison.InvariantCultureIgnoreCase)) continue;
 
                         if (!modloaderStats.ContainsKey(modloader))
                         {

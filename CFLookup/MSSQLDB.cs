@@ -12,6 +12,13 @@ namespace CFLookup
             _connection = connection;
         }
 
+        public async Task<SqlDataReader> ExecuteReader(string sql, params SqlParameter[] parameters)
+        {
+            await EnsureConnected();
+            var command = GetCommandWithParams(sql, parameters);
+            return command.ExecuteReader(CommandBehavior.SequentialAccess);
+        }
+
         public async Task<DataTable> ExecuteDataTableAsync(string sql, params SqlParameter[] parameters)
         {
             await EnsureConnected();

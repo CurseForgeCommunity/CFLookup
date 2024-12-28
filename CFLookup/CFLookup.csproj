@@ -1,27 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <TypeScriptTarget>ES6</TypeScriptTarget>
-  </PropertyGroup>
-
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+  <PropertyGroup Label="Configuration">
     <TypeScriptTarget>ES6</TypeScriptTarget>
   </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
-	  <PackageReference Include="Hangfire.AspNetCore" Version="1.8.6" />
+	  <PackageReference Include="Hangfire.AspNetCore" Version="1.8.12" />
 	  <PackageReference Include="Hangfire.Dashboard.BasicAuthorization" Version="1.0.2" />
 	  <PackageReference Include="Hangfire.Redis.StackExchange" Version="1.9.3" />
+	  <PackageReference Include="Highsoft.Highcharts" Version="11.4.1" />
+	  <PackageReference Include="Highsoft.Highstock" Version="11.4.1" />
 	  <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.2" />
-	  <PackageReference Include="NSec.Cryptography" Version="22.4.0" />
-    <PackageReference Include="CurseForge.APIClient" Version="2.1.0" />
-    <PackageReference Include="StackExchange.Redis" Version="2.7.10" />
+	  <PackageReference Include="NSec.Cryptography" Version="24.4.0" />
+    <PackageReference Include="CurseForge.APIClient" Version="2.2.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.7.33" />
   </ItemGroup>
 
   <ProjectExtensions><VisualStudio><UserProperties wwwroot_4manifest_1json__JsonSchema="https://json.schemastore.org/web-manifest-combined.json" /></VisualStudio></ProjectExtensions>
