@@ -23,7 +23,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: 6.0.x
+          dotnet-version: 8.0.x
 
       - name: Install Octopus CLI
         run: |
@@ -38,3 +38,9 @@ jobs:
           dotnet publish CFLookup.csproj --output published-app --configuration Release -p:FileVersion="$PACKAGE_VERSION" -p:AssemblyVersion="$PACKAGE_VERSION" && \
           octo pack --id="whatcurseforgeprojectisthis" --version="$PACKAGE_VERSION" --basePath="./published-app" --outFolder="./published-app" && \
           octo push --package="./published-app/whatcurseforgeprojectisthis.$PACKAGE_VERSION.nupkg" --server="${{ secrets.OCTOPUS_SERVER_URL }}" --apiKey="${{ secrets.OCTOPUS_API_KEY }}"
+      - name: Build and package the bot for publish
+        run: |
+          cd CFDiscordBot && \
+          dotnet publish CFDiscordBot.csproj --output published-bot --configuration Release -p:FileVersion="$PACKAGE_VERSION" -p:AssemblyVersion="$PACKAGE_VERSION" && \
+          octo pack --id="cflookupbot" --version="$PACKAGE_VERSION" --basePath="./published-bot" --outFolder="./published-bot" && \
+          octo push --package="./published-bot/cflookupbot.$PACKAGE_VERSION.nupkg" --server="${{ secrets.OCTOPUS_SERVER_URL }}" --apiKey="${{ secrets.OCTOPUS_API_KEY }}"

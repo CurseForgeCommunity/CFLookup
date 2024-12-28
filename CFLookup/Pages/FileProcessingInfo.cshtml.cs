@@ -42,16 +42,27 @@ namespace CFLookup.Pages
                     await _redis.StringSetAsync($"cf-game-{info.GameId}", JsonSerializer.Serialize(game), TimeSpan.FromDays(1));
                 }
 
-                Mod mod;
+                Mod? mod = null;
                 var modCache = await _redis.StringGetAsync($"cf-mod-{info.ModId}");
                 if (!modCache.IsNullOrEmpty)
                 {
-                    mod = JsonSerializer.Deserialize<Mod>(modCache)!;
+                    mod = JsonSerializer.Deserialize<Mod?>(modCache)!;
                 }
                 else
                 {
-                    mod = (await _cfApiClient.GetModAsync(info.ModId)).Data;
-                    await _redis.StringSetAsync($"cf-mod-{info.ModId}", JsonSerializer.Serialize(mod), TimeSpan.FromDays(1));
+                    try
+                    {
+                        mod = (await _cfApiClient.GetModAsync(info.ModId))?.Data;
+                        if (mod != null)
+                        {
+                            await _redis.StringSetAsync($"cf-mod-{info.ModId}", JsonSerializer.Serialize(mod), TimeSpan.FromDays(1));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Problem fetching mod with id: {info.ModId}");
+                        Console.WriteLine(ex.ToString());
+                    }
                 }
 
                 CurseForge.APIClient.Models.Files.File file;
@@ -71,7 +82,8 @@ namespace CFLookup.Pages
                     Game = game,
                     Mod = mod,
                     File = file,
-                    LatestUpdatedUtc = info.Last_Updated_UTC
+                    LatestUpdatedUtc = info.Last_Updated_UTC,
+                    FileProcessingInfo = info
                 };
 
                 ModFiles.Add(gameModFileProcessingInfo);
@@ -84,9 +96,11 @@ namespace CFLookup.Pages
     public class GameModFileProcessingInfo
     {
         public Game Game { get; set; }
-        public Mod Mod { get; set; }
+        public Mod? Mod { get; set; }
         public CurseForge.APIClient.Models.Files.File File { get; set; }
         public DateTimeOffset LatestUpdatedUtc { get; set; }
         public TimeSpan SinceLatestUpdate => DateTimeOffset.UtcNow - LatestUpdatedUtc;
+
+        public FileProcessingStatus FileProcessingInfo { get; internal set; }
     }
 }

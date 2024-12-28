@@ -1,8 +1,10 @@
 using CFLookup;
+#if !DEBUG
 using CFLookup.Jobs;
 using Hangfire;
 using Hangfire.Dashboard.BasicAuthorization;
 using Hangfire.Redis.StackExchange;
+#endif
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Data.SqlClient;
 using StackExchange.Redis;
@@ -10,7 +12,7 @@ using System.IO.Compression;
 
 public class Program
 {
-    public static IServiceProvider ServiceProvider {  get; set; }
+    public static IServiceProvider ServiceProvider { get; set; }
 
     private static async Task Main(string[] args)
     {
