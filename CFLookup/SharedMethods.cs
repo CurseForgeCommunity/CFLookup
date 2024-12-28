@@ -5,6 +5,7 @@ using CurseForge.APIClient.Models.Games;
 using CurseForge.APIClient.Models.Mods;
 using StackExchange.Redis;
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Data;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -354,18 +355,22 @@ namespace CFLookup
             return mcVersionModCount;
         }
 
-        public static async Task<Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>> GetMinecraftStatsOverTime(MSSQLDB _db, int datapoints = 1000)
+        public static async Task<FrozenDictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>> GetMinecraftStatsOverTime(MSSQLDB _db, int? datapoints = 1000)
         {
-            var stats = await _db.ExecuteDataTableAsync($"SELECT TOP {datapoints} * FROM MinecraftModStatsOverTime ORDER BY statId ASC");
+            var stats = await _db.ExecuteReader(
+$@"SELECT {(datapoints.HasValue && datapoints > 0 ? $"TOP {datapoints}" : "")} timestamp_utc, stats
+FROM MinecraftModStatsOverTime
+ORDER BY statId DESC
+");
             var Stats = new Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>();
-            foreach (DataRow row in stats.Rows)
+            while (stats.Read())
             {
-                var timestamp = row.Field<DateTimeOffset>("timestamp_utc");
-                var gameStats = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, long>>>(row.Field<string>("stats")!)!;
+                var timestamp = stats.GetDateTimeOffset(0);
+                var gameStats = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, long>>>(stats.GetString(1))!;
                 Stats.Add(timestamp, gameStats);
             }
 
-            return Stats;
+            return Stats.OrderDescending().ToFrozenDictionary(k => k.Key, v => v.Value);
         }
 
         public static string GetProjectNameFromFile(string url)

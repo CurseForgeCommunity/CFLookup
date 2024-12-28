@@ -1,86 +1,80 @@
 ﻿@page
+@using Highsoft.Web.Mvc.Stocks
+@using Highsoft.Web.Mvc.Stocks.Rendering
 @model CFLookup.Pages.MinecraftModStatsOverTimeModel
 @{
     ViewData["Title"] = "Minecraft mod stats over time";
 }
 @section Head {
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script>
-        google.charts.load('current', { packages: ['linechart'] });
-        google.charts.setOnLoadCallback(drawAllCharts);
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+}
 
-        function drawAllCharts() {
-            @foreach(var stat in Model.Stats)
-            {
-                <text>drawMinecraft</text>@stat.Key<text>Chart();</text>
-            }
-        }
-        @foreach(var stat in Model.Stats)
+@{
+    var chartOptions =
+        new Highstock
         {
-            <text>
-            function drawMinecraft</text>@stat.Key<text>Chart() {
-                var data = new google.visualization.DataTable();
-
-                data.addColumn('datetime', 'Time');
-                @foreach(var gameVersion in stat.Value.FirstOrDefault().Value.Keys)
+            RangeSelector = new RangeSelector
+            {
+                Selected = 4
+            },
+            Responsive = new Responsive {
+                
+            },
+            Chart = new Chart {
+                HeightNumber = 800
+            },
+            XAxis = new List<XAxis>
+            {
+                new XAxis
                 {
-                    <text>data.addColumn('number', '@gameVersion');</text>
+                    Ordinal = true
                 }
-
-                const jsonData = @Html.Raw(Json.Serialize(stat.Value));
-
-                for(var stat in jsonData)
+            },
+            Legend = new Legend
+            {
+                Enabled = true
+            },
+            YAxis = new List<YAxis>
+            {
+                new YAxis
                 {
-                    let rowData = jsonData[stat];
-                    
-                    let row = [];
-
-                    row.push(new Date(stat));
-
-                    for(var gameVersion in rowData)
+                    Labels = new YAxisLabels
                     {
-                        row.push(rowData[gameVersion]);
+                    },
+                    PlotLines = new List<YAxisPlotLines>
+                    {
+                        new YAxisPlotLines
+                        {
+                            Value = 0,
+                            Width = 2,
+                            Color = "silver"
+                        }
                     }
-                    console.log(row);
-                    data.addRow(row);
                 }
-            
-                var options = {
-                    title: 'Number of Minecraft mods per game version, @stat.Key',
-                    height: '700',
-                    width: '100%',
-                    isStacked: true,
-                    legend: {
-                        position: 'bottom',
-                        textStyle: { color: '#6c757d' }
-                    },
-                    vAxis: {
-                        title: 'Minecraft game version',
-                        titleTextStyle: { color: '#6c757d' },
-                        textStyle: { color: '#6c757d' },
-                        gridlines: { color: '#787878' }
-                    },
-                    backgroundColor: { fill: 'transparent' },
-                    titleTextStyle: {
-                        color: '#fff'
-                    },
-                    hAxis: {
-                        textStyle: { color: '#6c757d' },
-                        titleTextStyle: { color: '#6c757d' },
-                        gridlines: { color: '#787878' },
-                        title: 'Time'
+            },
+            PlotOptions = new PlotOptions
+            {
+                Series = new PlotOptionsSeries
+                {
+                    Compare = PlotOptionsSeriesCompare.Value,
+                    DataGrouping = new PlotOptionsSeriesDataGrouping
+                    {
+                        Enabled = true
                     }
-                };
+                }
+            },
+            Tooltip = new Tooltip
+            {
+                PointFormat = @"<span style='color:{series.color}'>{series.name}</span>: <b>{point.y}</b> ({point.change}%)<br/>",
+                ValueDecimals = 2,
+                Split = true,
+                Outside = true
+            },
+            Series = Model.ModLoaderStats["ForgeData"],
+        };
 
-                var chart = new google.visualization.LineChart(document.getElementById('minecraft-version-modloader-@stat.Key'));
+    chartOptions.ID = "forgeChart";
+    var renderer = new HighstockRenderer(chartOptions);
+}
 
-                chart.draw(data, options);
-            }
-            </text>
-        }
-    </script>
-}
-@foreach(var stat in Model.Stats)
-{
-    <div id="minecraft-version-modloader-@stat.Key"></div>
-}
+@Html.Raw(renderer.RenderHtml())
