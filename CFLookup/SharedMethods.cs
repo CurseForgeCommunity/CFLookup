@@ -360,11 +360,11 @@ namespace CFLookup
             var stats = await _db.ExecuteReader(
 $@"
 WITH DailyLatest AS  (
-    SELECT *,
+    SELECT timestamp_utc, stats,
     ROW_NUMBER() OVER (PARTITION BY CAST(timestamp_utc AS DATE) ORDER BY timestamp_utc DESC) AS RowNumber
     FROM MinecraftModStatsOverTime WITH(NOLOCK)
 )
-SELECT *
+SELECT timestamp_utc, stats
 FROM DailyLatest
 WHERE RowNumber = 1
 ");
