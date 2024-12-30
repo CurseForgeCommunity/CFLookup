@@ -16,7 +16,7 @@ namespace CFLookup.Jobs
 
                 var _rdb = _redis.GetDatabase(5);
 
-                var stats = await SharedMethods.GetMinecraftStatsOverTime(_db, CancellationToken.None, null);
+                var stats = await SharedMethods.GetMinecraftStatsOverTime(_db, CancellationToken.None, 24 * 60);
 
                 var renderers = new List<string>();
                 var ModLoaderStats = new Dictionary<string, List<Series>>();
