@@ -16,7 +16,7 @@ namespace CFLookup.Jobs
 
                 var _rdb = _redis.GetDatabase(5);
 
-                var stats = await SharedMethods.GetMinecraftStatsOverTime(_db, CancellationToken.None, 24 * 60);
+                var stats = await SharedMethods.GetMinecraftStatsOverTime(_db, CancellationToken.None);
 
                 var renderers = new List<string>();
                 var ModLoaderStats = new Dictionary<string, List<Series>>();
@@ -110,7 +110,7 @@ namespace CFLookup.Jobs
                                 new XAxis
                                 {
                                     Type = "datetime",
-                                    MinRange = 3600000
+                                    MinRange = 24 * 3600000
                                 }
                             },
                             Legend = new Legend

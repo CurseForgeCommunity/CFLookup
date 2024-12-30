@@ -355,17 +355,18 @@ namespace CFLookup
             return mcVersionModCount;
         }
 
-        public static async Task<Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>> GetMinecraftStatsOverTime(MSSQLDB _db, CancellationToken cancellationToken, int? datapoints = 1000)
+        public static async Task<Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>> GetMinecraftStatsOverTime(MSSQLDB _db, CancellationToken cancellationToken)
         {
             var stats = await _db.ExecuteReader(
 $@"
-SELECT timestamp_utc, stats, RowNumber
-FROM (
-    SELECT ROW_NUMBER() OVER (ORDER BY statId DESC) AS RowNumber, *
-    FROM MinecraftModStatsOverTime
-) AS MCStats
-{(datapoints.HasValue && datapoints > 0 ? $"WHERE RowNumber <= {datapoints}" : "")}
-ORDER BY RowNumber DESC
+WITH DailyLatest AS  (
+    SELECT *,
+    ROW_NUMBER() OVER (PARTITION BY CAST(timestamp_utc AS DATE) ORDER BY timestamp_utc DESC) AS RowNumber
+    FROM MinecraftModStatsOverTime WITH(NOLOCK)
+)
+SELECT *
+FROM DailyLatest
+WHERE RowNumber = 1
 ");
             var Stats = new Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>();
             while (stats.Read())
