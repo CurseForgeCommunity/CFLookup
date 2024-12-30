@@ -86,7 +86,7 @@ namespace CFLookup.Jobs
                             Name = series.Key,
                             Data = series.Value,
                             TurboThreshold = 100,
-                            Selected = false
+                            Visible = false
                         });
                     }
 
