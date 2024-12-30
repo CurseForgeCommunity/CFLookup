@@ -54,17 +54,17 @@ namespace CFLookup
         }
 
         [HttpGet("Minecraft/ModStatsOverTime.json")]
-        public async Task<IActionResult> MinecraftModStatsOverTime()
+        public async Task<IActionResult> MinecraftModStatsOverTime(CancellationToken cancellationToken)
         {
-            var stats = await SharedMethods.GetMinecraftStatsOverTime(_db);
+            var stats = await SharedMethods.GetMinecraftStatsOverTime(_db, cancellationToken);
 
             return new JsonResult(stats);
         }
 
         [HttpGet("Minecraft/ModStatsOverTime.v2.json")]
-        public async Task<IActionResult> MinecraftModStatsOverTimeV2()
+        public async Task<IActionResult> MinecraftModStatsOverTimeV2(CancellationToken cancellationToken)
         {
-            var stats = await SharedMethods.GetMinecraftStatsOverTime(_db);
+            var stats = await SharedMethods.GetMinecraftStatsOverTime(_db, cancellationToken);
 
             var modloaderStats = new Dictionary<string, List<GameVersionTimestampInfo>>();
 

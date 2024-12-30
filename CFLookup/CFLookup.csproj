@@ -17,6 +17,7 @@
 	  <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.5" />
 	  <PackageReference Include="Highsoft.Highcharts" Version="11.4.1" />
 	  <PackageReference Include="Highsoft.Highstock" Version="11.4.1" />
+	  <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	  <PackageReference Include="NSec.Cryptography" Version="24.4.0" />
     <PackageReference Include="CurseForge.APIClient" Version="3.0.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />

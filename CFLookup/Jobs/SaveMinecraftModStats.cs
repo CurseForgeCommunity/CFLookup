@@ -52,7 +52,7 @@ namespace CFLookup.Jobs
                     { "Forge", ModLoaderType.Forge },
                     { "Fabric", ModLoaderType.Fabric },
                     { "Quilt", ModLoaderType.Quilt },
-                    { "NeoForge", (ModLoaderType)6 }
+                    { "NeoForge", ModLoaderType.NeoForge }
                 };
 
                 var modsPerVersion = new Dictionary<string, Dictionary<string, long>>();

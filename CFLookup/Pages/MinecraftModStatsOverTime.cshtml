@@ -1,80 +1,11 @@
 ﻿@page
-@using Highsoft.Web.Mvc.Stocks
-@using Highsoft.Web.Mvc.Stocks.Rendering
 @model CFLookup.Pages.MinecraftModStatsOverTimeModel
 @{
     ViewData["Title"] = "Minecraft mod stats over time";
 }
 @section Head {
-    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
 }
 
-@{
-    var chartOptions =
-        new Highstock
-        {
-            RangeSelector = new RangeSelector
-            {
-                Selected = 4
-            },
-            Responsive = new Responsive {
-                
-            },
-            Chart = new Chart {
-                HeightNumber = 800
-            },
-            XAxis = new List<XAxis>
-            {
-                new XAxis
-                {
-                    Ordinal = true
-                }
-            },
-            Legend = new Legend
-            {
-                Enabled = true
-            },
-            YAxis = new List<YAxis>
-            {
-                new YAxis
-                {
-                    Labels = new YAxisLabels
-                    {
-                    },
-                    PlotLines = new List<YAxisPlotLines>
-                    {
-                        new YAxisPlotLines
-                        {
-                            Value = 0,
-                            Width = 2,
-                            Color = "silver"
-                        }
-                    }
-                }
-            },
-            PlotOptions = new PlotOptions
-            {
-                Series = new PlotOptionsSeries
-                {
-                    Compare = PlotOptionsSeriesCompare.Value,
-                    DataGrouping = new PlotOptionsSeriesDataGrouping
-                    {
-                        Enabled = true
-                    }
-                }
-            },
-            Tooltip = new Tooltip
-            {
-                PointFormat = @"<span style='color:{series.color}'>{series.name}</span>: <b>{point.y}</b> ({point.change}%)<br/>",
-                ValueDecimals = 2,
-                Split = true,
-                Outside = true
-            },
-            Series = Model.ModLoaderStats["ForgeData"],
-        };
-
-    chartOptions.ID = "forgeChart";
-    var renderer = new HighstockRenderer(chartOptions);
-}
-
-@Html.Raw(renderer.RenderHtml())
+@Html.Raw(Model.ChartHtml)

@@ -355,22 +355,31 @@ namespace CFLookup
             return mcVersionModCount;
         }
 
-        public static async Task<FrozenDictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>> GetMinecraftStatsOverTime(MSSQLDB _db, int? datapoints = 1000)
+        public static async Task<Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>> GetMinecraftStatsOverTime(MSSQLDB _db, CancellationToken cancellationToken, int? datapoints = 1000)
         {
             var stats = await _db.ExecuteReader(
-$@"SELECT {(datapoints.HasValue && datapoints > 0 ? $"TOP {datapoints}" : "")} timestamp_utc, stats
-FROM MinecraftModStatsOverTime
-ORDER BY statId DESC
+$@"
+SELECT timestamp_utc, stats, RowNumber
+FROM (
+    SELECT ROW_NUMBER() OVER (ORDER BY statId DESC) AS RowNumber, *
+    FROM MinecraftModStatsOverTime
+) AS MCStats
+{(datapoints.HasValue && datapoints > 0 ? $"WHERE RowNumber <= {datapoints}" : "")}
+ORDER BY RowNumber DESC
 ");
             var Stats = new Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>();
             while (stats.Read())
             {
+                if(cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
                 var timestamp = stats.GetDateTimeOffset(0);
                 var gameStats = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, long>>>(stats.GetString(1))!;
                 Stats.Add(timestamp, gameStats);
             }
 
-            return Stats.OrderDescending().ToFrozenDictionary(k => k.Key, v => v.Value);
+            return Stats;
         }
 
         public static string GetProjectNameFromFile(string url)

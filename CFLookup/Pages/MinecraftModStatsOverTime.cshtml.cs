@@ -1,92 +1,30 @@
-using Highsoft.Web.Mvc.Stocks;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using StackExchange.Redis;
 
 namespace CFLookup.Pages
 {
     public class MinecraftModStatsOverTimeModel : PageModel
     {
-        private readonly MSSQLDB _db;
+        private readonly ConnectionMultiplexer _db;
 
-        public Dictionary<string, Dictionary<DateTimeOffset, Dictionary<string, long>>> Stats { get; set; } = new Dictionary<string, Dictionary<DateTimeOffset, Dictionary<string, long>>>();
+        public string ChartHtml { get; set; }
 
-        public Dictionary<string, List<Series>> ModLoaderStats = new Dictionary<string, List<Series>>();
-
-        public MinecraftModStatsOverTimeModel(MSSQLDB db)
+        public MinecraftModStatsOverTimeModel(ConnectionMultiplexer db)
         {
             _db = db;
         }
 
-        public async Task OnGetAsync()
+        public async Task OnGetAsync(CancellationToken cancellationToken)
         {
-            var stats = await SharedMethods.GetMinecraftStatsOverTime(_db, 24 * 30);
+            var rdb = _db.GetDatabase(5);
 
-            var modloaderStats = new Dictionary<string, Dictionary<DateTimeOffset, Dictionary<string, long>>>();
+            var statHtml = await rdb.StringGetAsync("cf-mcmodloader-stats");
 
-            foreach (var stat in stats)
+            if(statHtml == RedisValue.Null)
             {
-                var date = stat.Key;
-                foreach(var modloaderHolder in stat.Value)
-                {
-                    var gameVersion = modloaderHolder.Key;
-
-                    if(gameVersion.Contains("snapshot", StringComparison.InvariantCultureIgnoreCase)) continue;
-
-                    foreach(var gameInfo in modloaderHolder.Value)
-                    {
-                        var modloader = gameInfo.Key;
-                        var count = gameInfo.Value;
-
-                        if(modloader.Contains("LiteLoader", StringComparison.InvariantCultureIgnoreCase)) continue;
-
-                        if (!modloaderStats.ContainsKey(modloader))
-                        {
-                            modloaderStats[modloader] = new Dictionary<DateTimeOffset, Dictionary<string, long>>();
-                        }
-
-                        if (!modloaderStats[modloader].ContainsKey(date))
-                        {
-                            modloaderStats[modloader][date] = new Dictionary<string, long>();
-                        }
-
-                        modloaderStats[modloader][date][gameVersion] = count;
-                    }
-                }
+                ChartHtml = "No data loaded yet";
+                return;
             }
-
-            // Generate different series per modloader and game version for Highstock as separate graphs, where the game versions are the line series
-            var testGraph = new Dictionary<string, List<LineSeriesData>>();
-            var forgeData = modloaderStats["Forge"];
-
-            foreach(var d in forgeData)
-            {
-                var date = d.Key;
-                var gameVersions = d.Value;
-
-                foreach(var gameVersion in gameVersions)
-                {
-                    if (!testGraph.ContainsKey(gameVersion.Key))
-                    {
-                        testGraph[gameVersion.Key] = new List<LineSeriesData>();
-                    }
-
-                    testGraph[gameVersion.Key].Add(new LineSeriesData { X = date.ToUnixTimeMilliseconds(), Y = gameVersion.Value });
-                }
-            }
-
-            var viewData = new List<Series>();
-
-            foreach(var series in testGraph)
-            {
-                viewData.Add(new LineSeries
-                {
-                    Name = series.Key,
-                    Data = series.Value,
-                    TurboThreshold = 100,
-                    
-                });
-            }
-
-            ModLoaderStats["ForgeData"] = viewData;
         }
     }
 }

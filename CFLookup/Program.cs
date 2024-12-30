@@ -172,6 +172,7 @@ public class Program
 #if !DEBUG
         RecurringJob.AddOrUpdate("cflookup:GetLatestUpdatedModPerGame", () => GetLatestUpdatedModPerGame.RunAsync(null), "*/5 * * * *");
         RecurringJob.AddOrUpdate("cflookup:SaveMinecraftModStats", () => SaveMinecraftModStats.RunAsync(null), Cron.Hourly());
+        RecurringJob.AddOrUpdate("cflookup:CacheMCStatsOvertime", () => CacheMCOverTime.RunAsync(null), "*/30 * * * *");
 #endif
 
         app.Run();
