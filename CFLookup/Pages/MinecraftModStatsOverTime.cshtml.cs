@@ -25,6 +25,8 @@ namespace CFLookup.Pages
                 ChartHtml = "No data loaded yet";
                 return;
             }
+
+            ChartHtml = statHtml!;
         }
     }
 }
