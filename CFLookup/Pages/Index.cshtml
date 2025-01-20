@@ -307,6 +307,10 @@
                             <td><b>Mod Distribution</b></td>
                             <td class="text-end">@(Model.FoundMod.AllowModDistribution ?? true ? "Allowed" : "Not allowed")</td>
                         </tr>
+                        <tr>
+                            <td><b>Available for download</b></td>
+                            <td class="text-end">@(Model.FoundMod.IsAvailable ? "Available" : "Not Available")</td>
+                        </tr>
                     </tbody>
                 </table>
                 @if(foundLinks.Count > 0)
