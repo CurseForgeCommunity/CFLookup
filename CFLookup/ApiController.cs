@@ -42,7 +42,7 @@ namespace CFLookup
             }
         }
 
-        [HttpGet("/{projectId}.json")]
+        [HttpGet("/{projectId:int}.json")]
         public async Task<IActionResult> GetProject(int projectId)
         {
             try
@@ -62,7 +62,7 @@ namespace CFLookup
             }
         }
 
-        [HttpGet("/file-{fileId}.json")]
+        [HttpGet("/file-{fileId:int}.json")]
         public async Task<IActionResult> GetFile(int fileId)
         {
             try
