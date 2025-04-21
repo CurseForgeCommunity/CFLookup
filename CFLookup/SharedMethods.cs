@@ -65,7 +65,7 @@ namespace CFLookup
 
             if (!cachedFile.IsNullOrEmpty)
             {
-                return JsonSerializer.Deserialize<(Mod mod, CurseForge.APIClient.Models.Files.File file, string changelog)>(cachedFile);
+                return JsonSerializer.Deserialize<(Mod? mod, CurseForge.APIClient.Models.Files.File file, string changelog)>(cachedFile);
             }
 
             var file = await _cfApiClient.GetFilesAsync(new GetModFilesRequestBody
