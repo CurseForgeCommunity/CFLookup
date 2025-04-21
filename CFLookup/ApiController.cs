@@ -61,5 +61,30 @@ namespace CFLookup
                 return NotFound();
             }
         }
+
+        [HttpGet("/file-{fileId}.json")]
+        public async Task<IActionResult> GetFile(int fileId)
+        {
+            try
+            {
+                (var project, var file, var changelog) = await SharedMethods.GetFileInfoAsync(_redis, _cfApiClient, fileId);
+
+                if (project == null)
+                {
+                    return NotFound();
+                }
+
+                return new JsonResult(new
+                {
+                    Project = project,
+                    File = file,
+                    Changelog = changelog
+                });
+            }
+            catch
+            {
+                return NotFound();
+            }
+        }
     }
 }
