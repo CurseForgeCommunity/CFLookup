@@ -69,7 +69,7 @@ namespace CFLookup
             {
                 (var project, var file, var changelog) = await SharedMethods.GetFileInfoAsync(_redis, _cfApiClient, fileId);
 
-                if (project == null)
+                if (file == null)
                 {
                     return NotFound();
                 }

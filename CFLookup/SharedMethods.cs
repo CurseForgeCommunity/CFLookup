@@ -14,7 +14,7 @@ namespace CFLookup
 {
     public static class SharedMethods
     {
-        public static async Task<List<Game>> GetGameInfo(IDatabaseAsync _redis, ApiClient _cfApiClient)
+        public async static Task<List<Game>> GetGameInfo(IDatabaseAsync _redis, ApiClient _cfApiClient)
         {
             var cachedGames = await _redis.StringGetAsync("cf-games");
 
@@ -28,7 +28,7 @@ namespace CFLookup
             return games.Data;
         }
 
-        public static async Task<Game> GetGameInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, int gameId)
+        public async static Task<Game> GetGameInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, int gameId)
         {
             var cachedGame = await _redis.StringGetAsync($"cf-games-{gameId}");
 
@@ -42,7 +42,7 @@ namespace CFLookup
             return games.Data;
         }
 
-        public static async Task<List<Category>> GetCategoryInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, List<Game> gameInfo, string game)
+        public async static Task<List<Category>> GetCategoryInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, List<Game> gameInfo, string game)
         {
             var cachedCategories = await _redis.StringGetAsync($"cf-categories-{game}");
 
@@ -59,7 +59,7 @@ namespace CFLookup
             return categories.Data;
         }
 
-        public static async Task<(Mod? mod, CurseForge.APIClient.Models.Files.File? file, string? changelog)> GetFileInfoAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int fileId)
+        public async static Task<(Mod? mod, CurseForge.APIClient.Models.Files.File? file, string? changelog)> GetFileInfoAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int fileId)
         {
             var cachedFile = await _redis.StringGetAsync($"cf-fileinfo-{fileId}");
 
@@ -76,16 +76,16 @@ namespace CFLookup
             if (file.Data.Count == 0)
                 return (null, null, null);
 
-            var mod = await _cfApiClient.GetModAsync(file.Data[0].ModId);
+            var mod = await SearchModAsync(_redis, _cfApiClient, file.Data[0].ModId);
 
             var changelog = await _cfApiClient.GetModFileChangelogAsync(file.Data[0].ModId, fileId);
 
-            await _redis.StringSetAsync($"cf-fileinfo-{fileId}", JsonSerializer.Serialize((mod.Data, file.Data[0], changelog.Data)), TimeSpan.FromMinutes(5));
+            await _redis.StringSetAsync($"cf-fileinfo-{fileId}", JsonSerializer.Serialize((mod, file.Data[0], changelog.Data)), TimeSpan.FromMinutes(5));
 
-            return (mod.Data, file.Data[0], changelog.Data);
+            return (mod, file.Data[0], changelog.Data);
         }
 
-        public static async Task<List<Category>> GetCategoryInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, int gameId)
+        public async static Task<List<Category>> GetCategoryInfo(IDatabaseAsync _redis, ApiClient _cfApiClient, int gameId)
         {
             var cachedCategories = await _redis.StringGetAsync($"cf-categories-id-{gameId}");
 
@@ -100,7 +100,7 @@ namespace CFLookup
             return categories.Data;
         }
 
-        public static async Task<List<Mod>> SearchModsAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, List<int> modIds)
+        public async static Task<List<Mod>> SearchModsAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, List<int> modIds)
         {
             var cachedMods = await _redis.StringGetAsync($"cf-mods-{string.Join('-', modIds)}");
             if (!cachedMods.IsNullOrEmpty)
@@ -115,7 +115,7 @@ namespace CFLookup
             return mods.Data;
         }
 
-        public static async Task<Mod?> SearchModAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int projectId)
+        public async static Task<Mod?> SearchModAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int projectId)
         {
             var modResultCache = await _redis.StringGetAsync($"cf-mod-{projectId}");
             if (!modResultCache.IsNull)
@@ -156,7 +156,7 @@ namespace CFLookup
             }
         }
 
-        public static async Task<int?> SearchModFileAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int fileId)
+        public async static Task<int?> SearchModFileAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int fileId)
         {
             var modResultCache = await _redis.StringGetAsync($"cf-file-{fileId}");
             if (!modResultCache.IsNull)
@@ -197,7 +197,7 @@ namespace CFLookup
             }
         }
 
-        public static async Task<Mod?> SearchForSlug(IDatabaseAsync _redis, ApiClient _cfApiClient, List<Game> gameInfo, List<Category> categoryInfo, string game, string category, string slug)
+        public async static Task<Mod?> SearchForSlug(IDatabaseAsync _redis, ApiClient _cfApiClient, List<Game> gameInfo, List<Category> categoryInfo, string game, string category, string slug)
         {
             var cachedResponse = await _redis.StringGetAsync($"cf-mod-{game}-{category}-{slug}");
             if (!cachedResponse.IsNullOrEmpty)
@@ -236,7 +236,7 @@ namespace CFLookup
             return null;
         }
 
-        public static async Task<ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, long>>> GetMinecraftModStatistics(IDatabaseAsync _redis, ApiClient _cfApiClient)
+        public async static Task<ConcurrentDictionary<string, ConcurrentDictionary<ModLoaderType, long>>> GetMinecraftModStatistics(IDatabaseAsync _redis, ApiClient _cfApiClient)
         {
             var cachedResponse = await _redis.StringGetAsync("cf-mcmod-stats");
             if (!cachedResponse.IsNullOrEmpty)
@@ -304,7 +304,7 @@ namespace CFLookup
             return mcVersionModCount;
         }
 
-        public static async Task<ConcurrentDictionary<string, long>> GetMinecraftModpackStatistics(IDatabaseAsync _redis, ApiClient _cfApiClient)
+        public async static Task<ConcurrentDictionary<string, long>> GetMinecraftModpackStatistics(IDatabaseAsync _redis, ApiClient _cfApiClient)
         {
             var cachedResponse = await _redis.StringGetAsync("cf-mcmodpack-stats");
             if (!cachedResponse.IsNullOrEmpty)
@@ -355,7 +355,7 @@ namespace CFLookup
             return mcVersionModCount;
         }
 
-        public static async Task<Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>> GetMinecraftStatsOverTime(MSSQLDB _db, CancellationToken cancellationToken)
+        public async static Task<Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>> GetMinecraftStatsOverTime(MSSQLDB _db, CancellationToken cancellationToken)
         {
             var stats = await _db.ExecuteReader(
 $@"
@@ -371,7 +371,7 @@ WHERE RowNumber = 1
             var Stats = new Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>();
             while (stats.Read())
             {
-                if(cancellationToken.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
                 {
                     break;
                 }
