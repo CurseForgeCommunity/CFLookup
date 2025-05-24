@@ -43,122 +43,122 @@
 @section Head {
     <meta name="twitter:card" content="summary">
     <meta property="og:type" content="website" />
-        @if (Model.FoundMod != null)
+    @if (Model.FoundMod != null)
+    {
+        var summaryText = new System.Text.StringBuilder();
+        var haveExtraLinebreak = false;
+        summaryText.AppendLine(Model.FoundMod.Summary);
+
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.IssuesUrl))
         {
-            var summaryText = new System.Text.StringBuilder();
-            var haveExtraLinebreak = false;
-            summaryText.AppendLine(Model.FoundMod.Summary);
-
-            if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.IssuesUrl))
+            summaryText.AppendLine();
+            if (Model.IsDiscord)
             {
-                summaryText.AppendLine();
-                if (Model.IsDiscord)
-                {
-                    summaryText.Append($"[Issues]({Model.FoundMod.Links.IssuesUrl}) ");
-                }
-                else
-                {
-                    summaryText.AppendLine($"Issues: {Model.FoundMod.Links.IssuesUrl}");
-                    haveExtraLinebreak = true;
-                }
+                summaryText.Append($"[Issues]({Model.FoundMod.Links.IssuesUrl}) ");
             }
-
-            if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.WikiUrl))
+            else
             {
-                if (Model.IsDiscord)
-                {
-                    summaryText.Append($"[Wiki/Docs]({Model.FoundMod.Links.WikiUrl}) ");
-                }
-                else
-                {
-                    if (!haveExtraLinebreak)
-                    {
-                        summaryText.AppendLine();
-                        haveExtraLinebreak = true;
-                    }
-                    summaryText.AppendLine($"Wiki/Docs: {Model.FoundMod.Links.WikiUrl}");
-                }
+                summaryText.AppendLine($"Issues: {Model.FoundMod.Links.IssuesUrl}");
+                haveExtraLinebreak = true;
             }
+        }
 
-            if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.WikiUrl))
+        {
+            if (Model.IsDiscord)
             {
-                if (Model.IsDiscord)
-                {
-                    summaryText.Append($"[Source]({Model.FoundMod.Links.SourceUrl}) ");
-                }
-                else
-                {
-                    if (!haveExtraLinebreak)
-                    {
-                        summaryText.AppendLine();
-                        haveExtraLinebreak = true;
-                    }
-                    summaryText.AppendLine($"Source: {Model.FoundMod.Links.SourceUrl}");
-                }
+                summaryText.Append($"[Wiki/Docs]({Model.FoundMod.Links.WikiUrl}) ");
             }
-
-            if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
+            else
             {
-                var gameVersionList = new List<string>();
-                var modloaderList = new List<string>();
-
-                foreach (var file in Model.FoundMod.LatestFilesIndexes)
-                {
-                    var modFile = Model.FoundMod.LatestFiles.FirstOrDefault(f => f.Id == file.FileId);
-                    if (modFile?.IsAvailable ?? true)
-                    {
-                        if (!string.IsNullOrWhiteSpace(file.GameVersion))
-                        {
-                            gameVersionList.Add(file.GameVersion);
-                        }
-                        if (!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
-                        {
-                            modloaderList.Add(file.ModLoader?.ToString());
-                        }
-                    }
-                }
-                var gameVersions = string.Join(", ", gameVersionList.Distinct().OrderBy(gvt => System.Text.RegularExpressions.Regex.Replace(gvt, "\\d+", m => m.Value.PadLeft(10, '0'))));
-                var modLoaders = string.Join(", ", modloaderList.Distinct().OrderBy(gvt => System.Text.RegularExpressions.Regex.Replace(gvt, "\\d+", m => m.Value.PadLeft(10, '0'))));
-
-                if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
+                if (!haveExtraLinebreak)
                 {
                     summaryText.AppendLine();
                     haveExtraLinebreak = true;
                 }
+                summaryText.AppendLine($"Wiki/Docs: {Model.FoundMod.Links.WikiUrl}");
+            }
+        }
 
-                if (!string.IsNullOrWhiteSpace(gameVersions))
+        if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
+        {
+            if (Model.IsDiscord)
+            {
+                summaryText.Append($"[Source]({Model.FoundMod.Links.SourceUrl}) ");
+            }
+            else
+            {
+                if (!haveExtraLinebreak)
                 {
-                    summaryText.AppendLine($"Game version(s): {gameVersions}");
+                    summaryText.AppendLine();
+                    haveExtraLinebreak = true;
                 }
+                summaryText.AppendLine($"Source: {Model.FoundMod.Links.SourceUrl}");
+            }
+        }
 
-                if (!string.IsNullOrWhiteSpace(modLoaders))
+        if (Model.FoundMod.LatestFilesIndexes?.Count > 0)
+        {
+            var gameVersionList = new List<string>();
+            var modloaderList = new List<string>();
+
+            foreach (var file in Model.FoundMod.LatestFilesIndexes)
+            {
+                var modFile = Model.FoundMod.LatestFiles.FirstOrDefault(f => f.Id == file.FileId);
+                if (modFile?.IsAvailable ?? true)
                 {
-                    summaryText.AppendLine($"Modloader(s): {modLoaders}");
+                    if (!string.IsNullOrWhiteSpace(file.GameVersion))
+                    {
+                        gameVersionList.Add(file.GameVersion);
+                    }
+                    if (!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
+                    {
+                        modloaderList.Add(file.ModLoader?.ToString());
+                    }
                 }
             }
+            var gameVersions = string.Join(", ", gameVersionList.Distinct().OrderBy(gvt => System.Text.RegularExpressions.Regex.Replace(gvt, "\\d+", m => m.Value.PadLeft(10, '0'))));
+            var modLoaders = string.Join(", ", modloaderList.Distinct().OrderBy(gvt => System.Text.RegularExpressions.Regex.Replace(gvt, "\\d+", m => m.Value.PadLeft(10, '0'))));
+
+            if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
+            {
+                summaryText.AppendLine();
+                haveExtraLinebreak = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(gameVersions))
+            {
+                summaryText.AppendLine($"Game version(s): {gameVersions}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(modLoaders))
+            {
+                summaryText.AppendLine($"Modloader(s): {modLoaders}");
+            }
+        }
 
         <meta property="og:title" content="@Model.FoundMod.Name" />
         <meta name="twitter:title" content="@Model.FoundMod.Name" />
-            if (Model.FoundMod.Links != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Links.WebsiteUrl))
-            {
+        if (Model.FoundMod.Links != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Links.WebsiteUrl))
+        {
             <meta property="og:url" content="@Model.FoundMod.Links.WebsiteUrl" />
-            }
-            if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
-            {
+        }
+        if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
+        {
             <meta property="og:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
             <meta property="og:image:alt" content="Project logotype" />
             <meta property="og:image:width" content="256" />
             <meta property="og:image:height" content="256" />
             <meta name="twitter:image" content="@Model.FoundMod.Logo.ThumbnailUrl" />
-            }
+        }
         <meta name="description" content="@summaryText.ToString().Trim()" />
         <meta property="og:description" content="@summaryText.ToString().Trim()" />
         <meta name="twitter:description" content="@summaryText.ToString().Trim()" />
         <meta name="twitter:site" content="@@CurseForge">
         <link rel="alternate" type="application/json+oembed" href="@oembedLink" title="@Model.FoundMod.Name" />
-        }
-        else
-        {
+    }
+    else
+    {
         <meta property="og:title" content="CFLookup / What CurseForge Project Is This?" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://cflookup.com/" />
@@ -166,38 +166,38 @@
         <meta property="og:description" content="CFLookup / What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
         <meta name="twitter:description" content="CFLookup / What CurseForge Project Is This? is a tool to help you find the CurseForge project or file based on a ID." />
         <meta name="twitter:site" content="@@NoLifeKing85">
-        }
+    }
 }
 
-    <div class="text-center">
-        <h1 class="display-4">CFLookup / What CurseForge Project Is This?</h1>
-        <form href="/" asp-page="Index" method="post">
-            <label class="form-label" for="projectSearchField">Enter the project id a slug or a comma separated list of project ids, and we'll try to look it up for you!</label>
-            <div class="row justify-content-center">
-                <div class="col-md-6">
-                    <div class="input-group mb-3">
-                        <label class="input-group-text" for="projectSearchField">Project Id / Slug</label>
-                        <input type="text" class="form-control text-center" id="projectSearchField" asp-for="ProjectSearchField" placeholder="Project Id / Slug (project-<number>)" />
-                        <button type="submit" class="btn btn-secondary">Search project</button>
-                    </div>
+<div class="text-center">
+    <h1 class="display-4">CFLookup / What CurseForge Project Is This?</h1>
+    <form href="/" asp-page="Index" method="post">
+        <label class="form-label" for="projectSearchField">Enter the project id a slug or a comma separated list of project ids, and we'll try to look it up for you!</label>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="input-group mb-3">
+                    <label class="input-group-text" for="projectSearchField">Project Id / Slug</label>
+                    <input type="text" class="form-control text-center" id="projectSearchField" asp-for="ProjectSearchField" placeholder="Project Id / Slug (project-<number>)" />
+                    <button type="submit" class="btn btn-secondary">Search project</button>
                 </div>
             </div>
-            <div class="row justify-content-center">
-                <div class="col-md-6">
-                    <div class="input-group mb-3">
-                        <label class="input-group-text" for="fileSearchField">File Id</label>
-                        <input type="number" class="form-control text-center" id="fileSearchField" asp-for="FileSearchField" placeholder="File Id" />
-                        <button type="submit" class="btn btn-secondary">Search file</button>
-                    </div>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="input-group mb-3">
+                    <label class="input-group-text" for="fileSearchField">File Id</label>
+                    <input type="number" class="form-control text-center" id="fileSearchField" asp-for="FileSearchField" placeholder="File Id" />
+                    <button type="submit" class="btn btn-secondary">Search file</button>
                 </div>
             </div>
-            <div class="row justify-content-center">
-                <div class="col-md-6">
-                    <p class="text-muted"><em>This tool is primarly focused on helping you find what mods that are deleted, and cannot be used in CurseForge.</em></p>
-                </div>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <p class="text-muted"><em>This tool is primarly focused on helping you find what mods that are deleted, and cannot be used in CurseForge.</em></p>
             </div>
-        </form>
-        @if (Model.FoundMod == null && Model.FoundMods == null)
+        </div>
+    </form>
+    @if (Model.FoundMod == null && Model.FoundMods == null)
     {
         if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
         {
@@ -256,6 +256,7 @@
     }
     else
     {
+        var modClass = Model.FoundCategories.Where(c => c.Id == Model.FoundMod.ClassId);
         <hr />
         @if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
         {
@@ -271,6 +272,14 @@
         }
         <p><i>@Model.FoundMod.Summary</i></p>
         <div class="row justify-content-center">
+            @if (Model.FoundGame != null)
+            {
+                <div class="mb-3 row justify-content-start">
+                    <div class="col-md-12 text-start">
+                        <h3><img src="@Model.FoundGame.Assets.IconUrl" alt="Game icon: @Model.FoundGame.Name" /> @Model.FoundGame.Name</h3>
+                    </div>
+                </div>
+            }
             <div class="col-md-6">
                 <table class="table table-striped table-dark text-start table-bordered caption-top">
                     <caption>Project information</caption>
@@ -299,6 +308,13 @@
                             <td><b>Downloads (might be inaccurate)</b></td>
                             <td class="text-end">@Model.FoundMod.DownloadCount.ToString("n0")</td>
                         </tr>
+                        @if (modClass != null)
+                        {
+                            <tr>
+                                <td><b>Class</b></td>
+                                <td class="text-end">@Html.Raw(string.Join("<br />", modClass.Select(c => "<a href=\"" + c.Url + "\" class=\"text-white\" target=\"_blank\">" + HttpUtility.HtmlEncode(c.Name) + "</a>")))</td>
+                            </tr>
+                        }
                         <tr>
                             <td><b>Categories</b></td>
                             <td class="text-end">@Html.Raw(string.Join("<br />", Model.FoundMod.Categories.Select(c => "<a href=\"" + c.Url + "\" class=\"text-white\" target=\"_blank\">" + HttpUtility.HtmlEncode(c.Name) + "</a>")))</td>

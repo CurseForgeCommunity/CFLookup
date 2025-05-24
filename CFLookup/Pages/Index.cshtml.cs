@@ -24,7 +24,9 @@ namespace CFLookup.Pages
         public string FileSearchField { get; set; } = string.Empty;
         public string ErrorMessage { get; set; } = string.Empty;
 
+        public Game? FoundGame { get; set; }
         public Mod? FoundMod { get; set; }
+        public List<Category>? FoundCategories { get; set; }
 
         public ConcurrentDictionary<string, (Game game, Category? category, List<Mod> mods)> FoundMods { get; set; }
 
@@ -115,7 +117,7 @@ namespace CFLookup.Pages
             {
                 var projectIds = ProjectSearchField.Split(',').Select(p => int.TryParse(p, out var id) ? id : -1).Where(p => p != -1).ToList();
 
-                var foundMods =  await SharedMethods.SearchModsAsync(_redis, _cfApiClient, projectIds);
+                var foundMods = await SharedMethods.SearchModsAsync(_redis, _cfApiClient, projectIds);
 
                 if (foundMods.Count > 0)
                 {
@@ -176,7 +178,10 @@ namespace CFLookup.Pages
                                     return Page();
                                 }
 
+                                FoundGame = gameInfo?.FirstOrDefault(g => g.Id == foundMod.GameId);
                                 FoundMod = foundMod;
+                                FoundCategories = categoryInfo;
+
                                 return Page();
                             }
                         }
@@ -227,9 +232,15 @@ namespace CFLookup.Pages
 
             FoundMod = await SharedMethods.SearchModAsync(_redis, _cfApiClient, projectId);
 
+
             if (FoundMod == null)
             {
                 ErrorMessage = "Could not find the project";
+            }
+            else
+            {
+                FoundGame = (await _cfApiClient.GetGameAsync(FoundMod.GameId)).Data;
+                FoundCategories = (await _cfApiClient.GetCategoriesAsync(FoundMod.GameId)).Data;
             }
 
             return Page();
