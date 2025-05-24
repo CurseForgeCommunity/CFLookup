@@ -256,7 +256,7 @@
     }
     else
     {
-        var modClass = Model.FoundCategories.Where(c => c.Id == Model.FoundMod.ClassId);
+        var modClass = Model.FoundCategories?.Where(c => c.Id == Model.FoundMod.ClassId);
         <hr />
         @if (Model.FoundMod.Logo != null && !string.IsNullOrWhiteSpace(Model.FoundMod.Logo.ThumbnailUrl))
         {
@@ -271,15 +271,15 @@
             <h2>@Model.FoundMod.Name</h2>
         }
         <p><i>@Model.FoundMod.Summary</i></p>
-        <div class="row justify-content-center">
-            @if (Model.FoundGame != null)
-            {
-                <div class="mb-3 row justify-content-start">
-                    <div class="col-md-12 text-start">
-                        <h3><img src="@Model.FoundGame.Assets.IconUrl" alt="Game icon: @Model.FoundGame.Name" /> @Model.FoundGame.Name</h3>
-                    </div>
+        @if (Model.FoundGame != null)
+        {
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <h3><img src="@Model.FoundGame.Assets.IconUrl" alt="Game icon: @Model.FoundGame.Name" /> @Model.FoundGame.Name</h3>
                 </div>
-            }
+            </div>
+        }
+        <div class="row justify-content-center">
             <div class="col-md-6">
                 <table class="table table-striped table-dark text-start table-bordered caption-top">
                     <caption>Project information</caption>

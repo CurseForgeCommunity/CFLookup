@@ -76,6 +76,12 @@ namespace CFLookup.Pages
                     }
                 }
             }
+
+            if (FoundMod != null)
+            {
+                FoundGame = (await _cfApiClient.GetGameAsync(FoundMod.GameId)).Data;
+                FoundCategories = (await _cfApiClient.GetCategoriesAsync(FoundMod.GameId)).Data;
+            }
         }
 
         public bool IsDiscord { get; set; } = false;
