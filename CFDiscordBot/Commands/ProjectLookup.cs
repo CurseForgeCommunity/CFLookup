@@ -184,7 +184,7 @@ namespace CFDiscordBot.Commands
             }
 
             // If the game is Minecraft Bedrock, we do an additional check if MCPEDL has the mod available through a slug lookup.
-            if (mod.GameId == 78022)
+            if (mod.GameId == 78022 && mod.AllowModDistribution.HasValue && mod.AllowModDistribution.Value)
             {
                 var client = httpClientFactory.CreateClient();
                 client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "CFLookup Discord Bot/1.0; (+cflookup@itssimple.se)");

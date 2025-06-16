@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Html
 @using Microsoft.AspNetCore.Http.Extensions
 @using Newtonsoft.Json
+@inject IHttpClientFactory httpClientFactory
 @model IndexModel
 @{
     ViewData["Title"] = "What?";
@@ -36,6 +37,21 @@
         if (!string.IsNullOrWhiteSpace(Model.FoundMod.Links?.SourceUrl))
         {
             foundLinks.Add("Source", Model.FoundMod.Links.SourceUrl);
+        }
+
+        // If the game is Minecraft Bedrock, we do an additional check if MCPEDL has the mod available through a slug lookup.
+        if (Model.FoundMod.GameId == 78022 && Model.FoundMod.AllowModDistribution.HasValue && Model.FoundMod.AllowModDistribution.Value)
+        {
+            var client = httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "CFLookup Discord Bot/1.0; (+cflookup@itssimple.se)");
+            client.BaseAddress = new Uri("https://mcpedl.com/");
+
+            var res = await client.GetAsync(Model.FoundMod.Slug);
+
+            if (res != null && res.IsSuccessStatusCode && !res.RequestMessage!.RequestUri!.ToString().Contains("notfound"))
+            {
+                foundLinks.Add("MCPEDL", $"https://mcpedl.com/{Model.FoundMod.Slug}");
+            }
         }
     }
 }
