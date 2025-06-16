@@ -17,6 +17,7 @@ await Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
         services.AddLogging(services => services.AddConsole());
+        services.AddHttpClient();
         services.AddSingleton(x => new ApiClient(configuration["CurseForge:ApiKey"]));
         services.AddSingleton(x => new DiscordSocketConfig
         {
