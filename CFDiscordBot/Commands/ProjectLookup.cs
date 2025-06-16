@@ -183,6 +183,25 @@ namespace CFDiscordBot.Commands
                 );
             }
 
+            // If the game is Minecraft Bedrock, we do an additional check if MCPEDL has the mod available through a slug lookup.
+            if (mod.GameId == 78022)
+            {
+                var client = httpClientFactory.CreateClient();
+                client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "CFLookup Discord Bot/1.0; (+cflookup@itssimple.se)");
+                client.BaseAddress = new Uri("https://mcpedl.com/");
+
+                var res = await client.GetAsync(mod.Slug);
+
+                if (res != null && res.IsSuccessStatusCode && !res.RequestMessage!.RequestUri!.ToString().Contains("notfound"))
+                {
+                    buttons.WithButton(
+                    style: ButtonStyle.Link,
+                    label: "MCPEDL",
+                    url: $"https://mcpedl.com/{mod.Slug}"
+                );
+                }
+            }
+
             await RespondAsync($"Project `{projectId}` is: **[{mod.Name}](https://cflookup.com/{projectId})**\n" +
                 $"{summaryText}",
                 embeds: new[] { projectEmbed.Build() },
