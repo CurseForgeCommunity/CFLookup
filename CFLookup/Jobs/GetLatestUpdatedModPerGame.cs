@@ -198,6 +198,7 @@ namespace CFLookup.Jobs
                     84932, // MINIcraft
                     85196, // Palworld
                     87986, // Hogwarts Legacy
+                    88849, // inZOI
                 };
 
                 foreach (var privateGame in privateGames)
