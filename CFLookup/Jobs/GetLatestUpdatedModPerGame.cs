@@ -6,6 +6,7 @@ using Hangfire;
 using Hangfire.Server;
 using Microsoft.Data.SqlClient;
 using StackExchange.Redis;
+using System.Data;
 using System.Text;
 using System.Text.Json;
 
@@ -32,15 +33,15 @@ namespace CFLookup.Jobs
                 Mod? latestUpdatedModData = null;
                 CurseForge.APIClient.Models.Files.File? latestUpdatedFileData = null;
 
-                var privateGames = await db.ExecuteListAsync<int>(
-                    "SELECT GameId FROM ProcessingGames WHERE Disabled = 0 AND ModCount > 0"
+                var privateGames = await db.ExecuteListAsync<ProcessingGames>(
+                    "SELECT * FROM ProcessingGames WHERE Disabled = 0 AND ModCount > 0"
                 );
 
                 foreach (var privateGame in privateGames)
                 {
-                    if (!allGames.Any(g => g.Id == privateGame))
+                    if (!allGames.Any(g => g.Id == privateGame.GameId))
                     {
-                        var game = await cfClient.GetGameAsync(privateGame);
+                        var game = await cfClient.GetGameAsync(privateGame.GameId);
                         if (game != null && game.Data != null)
                         {
                             allGames.Add(game.Data);
@@ -159,6 +160,26 @@ https://cflookup.com/{latestUpdatedModData.Id}";
                     return;
                 }
             }
+        }
+    }
+
+    public class ProcessingGames
+    {
+        public long Id { get; set; }
+        public int GameId { get; set; }
+        public string GameName { get; set; }
+        public long? ModCount { get; set; }
+        public bool Disabled { get; set; }
+        public DateTime LastUpdate { get; set; }
+
+        public ProcessingGames(DataRow row)
+        {
+            Id = (long)row["Id"];
+            GameId = (int)row["GameId"];
+            GameName = (string)row["GameName"];
+            ModCount = (long)row["ModCount"];
+            Disabled = (bool)row["Disabled"];
+            LastUpdate = (DateTime)row["LastUpdate"];
         }
     }
 }
