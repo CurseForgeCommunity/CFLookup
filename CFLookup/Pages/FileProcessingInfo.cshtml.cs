@@ -26,7 +26,13 @@ namespace CFLookup.Pages
 
         public async Task<IActionResult> OnGetAsync()
         {
-            var gameProcessingInfo = await _db.ExecuteListAsync<FileProcessingStatus>("SELECT * FROM fileProcessingStatus ORDER BY last_updated_utc DESC");
+            var gameProcessingInfo = await _db.ExecuteListAsync<FileProcessingStatus>(@"
+SELECT fps.*
+FROM fileProcessingStatus fps
+INNER JOIN ProcessingGames pg ON fps.gameId = pg.GameId
+WHERE pg.Disabled = 0 AND pg.ModCount > 0
+ORDER BY fps.last_updated_utc DESC
+");
 
             foreach (var info in gameProcessingInfo)
             {
