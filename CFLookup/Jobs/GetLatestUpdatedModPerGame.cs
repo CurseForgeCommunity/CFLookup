@@ -46,6 +46,12 @@ namespace CFLookup.Jobs
                         {
                             allGames.Add(game.Data);
                         }
+
+                        if (game != null && game.Error != null && game.Error.ErrorCode != 404)
+                        {
+                            Console.WriteLine($"Error fetching game info for {privateGame.Id}: {game.Error.ErrorMessage}");
+                            continue;
+                        }
                         await Task.Delay(100);
                     }
                 }
@@ -58,7 +64,14 @@ namespace CFLookup.Jobs
                     await Task.Delay(100);
 
                     var latestUpdatedMod = await cfClient.SearchModsAsync(game.Id, sortField: ModsSearchSortField.LastUpdated, sortOrder: ModsSearchSortOrder.Descending, pageSize: 1);
-                    if (latestUpdatedMod != null && latestUpdatedMod.Pagination.ResultCount > 0)
+
+                    if (latestUpdatedMod != null && latestUpdatedMod.Error != null)
+                    {
+                        Console.WriteLine($"Error fetching latest updated mod for {game.Name} (GameId: {game.Id}): {latestUpdatedMod.Error.ErrorMessage}");
+                        continue;
+                    }
+
+                    if (latestUpdatedMod != null && latestUpdatedMod.Pagination != null && latestUpdatedMod.Pagination.ResultCount > 0)
                     {
                         await db.ExecuteNonQueryAsync("UPDATE ProcessingGames SET LastUpdate = GETUTCDATE(), ModCount = @modCount WHERE GameId = @gameId",
                             new SqlParameter("@modCount", latestUpdatedMod.Pagination.ResultCount),
