@@ -74,7 +74,7 @@ namespace CFLookup.Jobs
                     if (latestUpdatedMod != null && latestUpdatedMod.Pagination != null && latestUpdatedMod.Pagination.ResultCount > 0)
                     {
                         await db.ExecuteNonQueryAsync("UPDATE ProcessingGames SET LastUpdate = GETUTCDATE(), ModCount = @modCount WHERE GameId = @gameId",
-                            new SqlParameter("@modCount", latestUpdatedMod.Pagination.ResultCount),
+                            new SqlParameter("@modCount", latestUpdatedMod.Pagination.TotalCount),
                             new SqlParameter("@gameId", game.Id)
                         );
 
