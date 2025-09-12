@@ -211,6 +211,7 @@ namespace CFLookup.Pages
                             if (gameMods.Value.mods.Count == 1)
                             {
                                 projectId = gameMods.Value.mods[0].Id;
+                                return Redirect($"~/{projectId}");
                             }
                             else
                             {
