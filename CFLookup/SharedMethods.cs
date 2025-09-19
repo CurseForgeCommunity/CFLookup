@@ -383,6 +383,62 @@ WHERE RowNumber = 1
             return Stats;
         }
 
+        public static async Task<ConcurrentDictionary<string, (Game game, Category category, List<Mod> mods)>> TryToFindSlug(IDatabaseAsync _redis, ApiClient _cfApiClient, string slug)
+        {
+            var returnValue = new ConcurrentDictionary<string, (Game game, Category category, List<Mod> mods)>();
+            var gameClasses = new ConcurrentDictionary<Game, List<Category>>();
+            var games = await SharedMethods.GetGameInfo(_redis, _cfApiClient);
+
+            var gameClassTasks = games.Select(async game =>
+            {
+                var classes = (await SharedMethods.GetCategoryInfo(_redis, _cfApiClient, game.Id)).Where(c => c.IsClass ?? false).ToList() ?? new List<Category>();
+                gameClasses.TryAdd(game, classes);
+            });
+
+            await Task.WhenAll(gameClassTasks);
+
+            var sortedList = gameClasses.OrderByDescending(c => c.Key.Id == 432 || c.Key.Id == 1);
+
+            var cachedSlugSearch = await _redis.StringGetAsync($"cf-slug-search-{slug}");
+
+            //if (!cachedSlugSearch.IsNullOrEmpty)
+            {
+                //return JsonSerializer.Deserialize<ConcurrentDictionary<string, (Game game, Category category, List<Mod> mods)>>(cachedSlugSearch);
+            }
+
+            var keyTasks = sortedList.Select(async kv =>
+            {
+                var gameCategoryTasks = kv.Value.Select(async cat =>
+                {
+                    try
+                    {
+                        var modSearch = await _cfApiClient.SearchModsAsync(kv.Key.Id, cat.Id, slug: slug);
+                        if (modSearch.Data.Count > 0)
+                        {
+                            if (!returnValue.ContainsKey($"{kv.Key.Id}-{cat.Id}"))
+                            {
+                                returnValue.TryAdd($"{kv.Key.Id}-{cat.Id}", (kv.Key, cat, new List<Mod>()));
+                            }
+
+                            returnValue[$"{kv.Key.Id}-{cat.Id}"].mods.AddRange(modSearch.Data);
+                        }
+                    }
+                    catch
+                    {
+                        // Empty, because.. yeah
+                    }
+                });
+
+                await Task.WhenAll(gameCategoryTasks);
+            });
+
+            await Task.WhenAll(keyTasks);
+
+            await _redis.StringSetAsync($"cf-slug-search-{slug}", JsonSerializer.Serialize(returnValue), TimeSpan.FromMinutes(5));
+
+            return returnValue;
+        }
+
         public static string GetProjectNameFromFile(string url)
         {
             return Path.GetFileName(url);
