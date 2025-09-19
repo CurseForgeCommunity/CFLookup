@@ -61,12 +61,12 @@ namespace CFLookup
 
         public async static Task<(Mod? mod, CurseForge.APIClient.Models.Files.File? file, string? changelog)> GetFileInfoAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, int fileId)
         {
-            var cachedFile = await _redis.StringGetAsync($"cf-fileinfo-{fileId}");
+            //var cachedFile = await _redis.StringGetAsync($"cf-fileinfo-{fileId}");
 
-            if (!cachedFile.IsNullOrEmpty)
-            {
-                return JsonSerializer.Deserialize<(Mod? mod, CurseForge.APIClient.Models.Files.File file, string changelog)>(cachedFile);
-            }
+            //if (!cachedFile.IsNullOrEmpty)
+            //{
+            //    return JsonSerializer.Deserialize<(Mod? mod, CurseForge.APIClient.Models.Files.File file, string changelog)>(cachedFile);
+            //}
 
             var file = await _cfApiClient.GetFilesAsync(new GetModFilesRequestBody
             {
@@ -80,7 +80,7 @@ namespace CFLookup
 
             var changelog = await _cfApiClient.GetModFileChangelogAsync(file.Data[0].ModId, fileId);
 
-            await _redis.StringSetAsync($"cf-fileinfo-{fileId}", JsonSerializer.Serialize((mod, file.Data[0], changelog.Data)), TimeSpan.FromMinutes(5));
+            //await _redis.StringSetAsync($"cf-fileinfo-{fileId}", JsonSerializer.Serialize((mod, file.Data[0], changelog.Data)), TimeSpan.FromMinutes(5));
 
             return (mod, file.Data[0], changelog.Data);
         }
