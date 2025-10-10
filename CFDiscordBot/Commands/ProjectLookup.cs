@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace CFDiscordBot.Commands
 {
@@ -33,62 +32,9 @@ namespace CFDiscordBot.Commands
                 return;
             }
 
-            //var modFiles = new List<CurseForge.APIClient.Models.Files.File>();
-
-            //var files = await apiClient.GetModFilesAsync(projectId, pageSize: 50);
-            //modFiles.AddRange(files.Data);
-
-            //var index = files.Pagination.Index;
-            //while (modFiles.Count < files.Pagination.TotalCount)
-            //{
-            //    files = await apiClient.GetModFilesAsync(projectId, index: index++, pageSize: 50);
-            //    modFiles.AddRange(files.Data);
-            //}
-
             var summaryText = new StringBuilder();
-            var haveExtraLinebreak = false;
 
             summaryText.AppendLine(mod.Summary);
-
-            if (mod.LatestFilesIndexes?.Count > 0)
-            {
-                var gameVersionList = new List<string>();
-                var modloaderList = new List<string>();
-
-                /*foreach (var modFile in modFiles)
-                {
-                    if (modFile?.IsAvailable ?? true)
-                    {
-                        if (!string.IsNullOrWhiteSpace(file.GameVersion))
-                        {
-                            gameVersionList.Add(file.GameVersion);
-                        }
-                        if (!string.IsNullOrWhiteSpace(file.ModLoader?.ToString()))
-                        {
-                            modloaderList.Add(file.ModLoader.Value.ToString());
-                        }
-                    }
-                }*/
-
-                var gameVersions = string.Join(", ", gameVersionList.Distinct().OrderBy(gvt => Regex.Replace(gvt, "\\d+", m => m.Value.PadLeft(10, '0'))));
-                var modLoaders = string.Join(", ", modloaderList.Distinct().OrderBy(gvt => Regex.Replace(gvt, "\\d+", m => m.Value.PadLeft(10, '0'))));
-
-                if ((!string.IsNullOrWhiteSpace(gameVersions) || !string.IsNullOrWhiteSpace(modLoaders)) && !haveExtraLinebreak)
-                {
-                    summaryText.AppendLine();
-                    haveExtraLinebreak = true;
-                }
-
-                if (!string.IsNullOrWhiteSpace(gameVersions))
-                {
-                    summaryText.AppendLine($"Game version(s): {gameVersions}");
-                }
-
-                if (!string.IsNullOrWhiteSpace(modLoaders))
-                {
-                    summaryText.AppendLine($"Modloader(s): {modLoaders}");
-                }
-            }
 
             var projectEmbed = new EmbedBuilder
             {
@@ -116,6 +62,7 @@ namespace CFDiscordBot.Commands
                 new() { Name = "Released", Value = $"<t:{mod.DateReleased.ToUnixTimeSeconds()}:F>", IsInline = true },
                 new() { Name = "Downloads", Value = mod.DownloadCount.ToString("n0"), IsInline = true },
                 new() { Name = "Mod Distribution", Value = mod.AllowModDistribution ?? true ? "Allowed" : "Not allowed", IsInline = true },
+                new() { Name = "Is available", Value = mod.IsAvailable ? "Yes" : "No", IsInline = true }
             };
 
             if (!string.IsNullOrWhiteSpace(categories))
