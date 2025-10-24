@@ -2,11 +2,13 @@ using CFLookup;
 #if !DEBUG
 using CFLookup.Jobs;
 using Hangfire;
+using Hangfire.Storage;
 using Hangfire.Dashboard.BasicAuthorization;
 using Hangfire.Redis.StackExchange;
 #endif
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Data.SqlClient;
+using Npgsql;
 using StackExchange.Redis;
 using System.IO.Compression;
 
@@ -50,6 +52,8 @@ public class Program
 
         var hangfireUser = string.Empty;
         var hangfirePassword = string.Empty;
+        
+        var pgsqlConnString = string.Empty;
 
         if (OperatingSystem.IsWindows())
         {
@@ -77,6 +81,11 @@ public class Program
                 Environment.GetEnvironmentVariable("CFLOOKUP_HangfirePassword", EnvironmentVariableTarget.User) ??
                 Environment.GetEnvironmentVariable("CFLOOKUP_HangfirePassword", EnvironmentVariableTarget.Process) ??
                 string.Empty;
+            
+            pgsqlConnString = Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL", EnvironmentVariableTarget.Machine) ??
+                Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL", EnvironmentVariableTarget.User) ??
+                Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL", EnvironmentVariableTarget.Process) ??
+                string.Empty;
         }
         else
         {
@@ -85,6 +94,7 @@ public class Program
             dbConnectionString = Environment.GetEnvironmentVariable("CFLOOKUP_SQL") ?? string.Empty;
             hangfireUser = Environment.GetEnvironmentVariable("CFLOOKUP_HangfireUser") ?? string.Empty;
             hangfirePassword = Environment.GetEnvironmentVariable("CFLOOKUP_HangfirePassword") ?? string.Empty;
+            pgsqlConnString = Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL") ?? string.Empty;
         }
 
         var redis = ConnectionMultiplexer.Connect(redisServer);
@@ -92,6 +102,8 @@ public class Program
         builder.Services.AddSingleton(redis);
 
         builder.Services.AddScoped(x => new SqlConnection(dbConnectionString));
+        
+        builder.Services.AddScoped(x => new NpgsqlConnection(pgsqlConnString));
 
         builder.Services.AddScoped<MSSQLDB>();
 #if !DEBUG
@@ -173,8 +185,13 @@ public class Program
         RecurringJob.AddOrUpdate("cflookup:GetLatestUpdatedModPerGame", () => GetLatestUpdatedModPerGame.RunAsync(null), "*/5 * * * *");
         RecurringJob.AddOrUpdate("cflookup:SaveMinecraftModStats", () => SaveMinecraftModStats.RunAsync(null), Cron.Hourly());
         RecurringJob.AddOrUpdate("cflookup:CacheMCStatsOvertime", () => CacheMCOverTime.RunAsync(null), "*/30 * * * *");
+        
+        if (!SharedMethods.CheckIfTaskIsScheduledOrInProgress("StoreCFApiProjects", "RunAsync"))
+        {
+            BackgroundJob.Schedule(() => StoreCFApiProjects.RunAsync(null), TimeSpan.FromSeconds(10));
+        }
 #endif
 
-        app.Run();
+        await app.RunAsync();
     }
 }

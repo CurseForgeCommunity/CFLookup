@@ -3,6 +3,7 @@ using CurseForge.APIClient.Models;
 using CurseForge.APIClient.Models.Files;
 using CurseForge.APIClient.Models.Games;
 using CurseForge.APIClient.Models.Mods;
+using Hangfire;
 using StackExchange.Redis;
 using System.Collections.Concurrent;
 using System.Collections.Frozen;
@@ -461,6 +462,18 @@ WHERE RowNumber = 1
                     timeSpan.Seconds > 0 ? $"{timeSpan.Seconds:n0}{secondText}" : string.Empty :
                     string.Empty
             ).Trim(new[] { ' ', ',' });
+        }
+        
+        public static bool CheckIfTaskIsScheduledOrInProgress(string taskName, string methodName)
+        {
+            var mapi = JobStorage.Current.GetMonitoringApi();
+            var processing = mapi.ProcessingJobs(0, 10).Where(i => i.Value.Job != null).Select(i => string.Format("{0}.{1}", i.Value.Job.Method.DeclaringType.Name, i.Value.Job.Method.Name));
+            var scheduled = mapi.ScheduledJobs(0, 10).Where(i => i.Value.Job != null).Select(i => string.Format("{0}.{1}", i.Value.Job.Method.DeclaringType.Name, i.Value.Job.Method.Name));
+            var enqueued = mapi.EnqueuedJobs("default", 0, 10).Where(i => i.Value.Job != null).Select(i => string.Format("{0}.{1}", i.Value.Job.Method.DeclaringType.Name, i.Value.Job.Method.Name));
+
+            var jobs = processing.Concat(scheduled).Concat(enqueued);
+
+            return jobs.Any(s => s == $"{taskName}.{methodName}");
         }
     }
 }

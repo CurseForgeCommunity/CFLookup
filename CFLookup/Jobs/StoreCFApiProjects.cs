@@ -1,0 +1,290 @@
+﻿using CurseForge.APIClient;
+using CurseForge.APIClient.Models.Mods;
+using Hangfire;
+using Hangfire.Server;
+using Npgsql;
+using System.Text.Json;
+
+namespace CFLookup.Jobs
+{
+    [AutomaticRetry(Attempts = 0)]
+    public class StoreCFApiProjects
+    {
+        const int BUCKET_SIZE = 10_000;
+        private const int EMPTY_BUCKETS = 25;
+        private const int RETRY_BATCH = 3;
+
+        public async static Task RunAsync(PerformContext context)
+        {
+            using (var scope = Program.ServiceProvider.CreateScope())
+            {
+                var cfClient = scope.ServiceProvider.GetRequiredService<ApiClient>();
+                cfClient.RequestDelay = TimeSpan.FromSeconds(0.05);
+                cfClient.RequestTimeout = TimeSpan.FromSeconds(30);
+
+                var conn = scope.ServiceProvider.GetRequiredService<NpgsqlConnection>();
+                await conn.OpenAsync();
+
+                var emptyBuckets = 0;
+
+                var buckets = GetBucketRanges(1, int.MaxValue);
+
+                foreach (var bucket in buckets)
+                {
+                    var _bucket = Enumerable.Range(bucket.start, bucket.items);
+
+                    var modList = await cfClient.GetModsByIdListAsync(new GetModsByIdsListRequestBody
+                    {
+                        FilterPcOnly = true,
+                        ModIds = _bucket.ToList()
+                    });
+
+                    if (modList.Error != null && modList.Error.ErrorCode != 404)
+                    {
+                        // No-op for now, maybe Discord logs later
+                    }
+
+                    if (modList.Data.Count == 0)
+                    {
+                        emptyBuckets++;
+                        if (emptyBuckets >= EMPTY_BUCKETS)
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        emptyBuckets = 0;
+                    }
+
+                    await using var tx = await conn.BeginTransactionAsync();
+                    await using var batch = new NpgsqlBatch(conn);
+                    batch.Transaction = tx;
+                    batch.Timeout = 600;
+
+                    foreach (var mod in modList.Data)
+                    {
+                        var cmd = new NpgsqlBatchCommand("""
+
+                                                         INSERT INTO project_data (
+                                                         	projectid,
+                                                         	gameid,
+                                                         	name,
+                                                         	slug,
+                                                         	links,
+                                                         	summary,
+                                                         	status,
+                                                         	downloadcount,
+                                                         	isfeatured,
+                                                         	primarycategoryid,
+                                                         	categories,
+                                                         	classid,
+                                                         	authors,
+                                                         	logo,
+                                                         	screenshots,
+                                                         	mainfileid,
+                                                         	latestfiles,
+                                                         	latestfileindexes,
+                                                         	datecreated,
+                                                         	datemodified,
+                                                         	datereleased,
+                                                         	allowmoddistribution,
+                                                         	gamepopularityrank,
+                                                         	isavailable,
+                                                         	thumbsupcount,
+                                                         	rating
+                                                         ) 
+                                                         VALUES (
+                                                         	$1,
+                                                         	$2,
+                                                         	$3,
+                                                         	$4,
+                                                         	$5,
+                                                         	$6,
+                                                         	$7,
+                                                         	$8,
+                                                         	$9,
+                                                         	$10,
+                                                         	$11,
+                                                         	$12,
+                                                         	$13,
+                                                         	$14,
+                                                         	$15,
+                                                         	$16,
+                                                         	$17,
+                                                         	$18,
+                                                         	$19,
+                                                         	$20,
+                                                         	$21,
+                                                         	$22,
+                                                         	$23,
+                                                         	$24,
+                                                         	$25,
+                                                         	$26
+                                                         )
+                                                         ON CONFLICT (projectid, gameid) DO UPDATE
+                                                         SET 
+                                                         	name=EXCLUDED.name,
+                                                         	slug=EXCLUDED.slug,
+                                                         	links=EXCLUDED.links,
+                                                         	summary=EXCLUDED.summary,
+                                                         	status=EXCLUDED.status,
+                                                         	downloadcount=EXCLUDED.downloadcount,
+                                                         	isfeatured=EXCLUDED.isfeatured,
+                                                         	primarycategoryid=EXCLUDED.primarycategoryid,
+                                                         	categories=EXCLUDED.categories,
+                                                         	classid=EXCLUDED.classid,
+                                                         	authors=EXCLUDED.authors,
+                                                         	logo=EXCLUDED.logo,
+                                                         	screenshots=EXCLUDED.screenshots,
+                                                         	mainfileid=EXCLUDED.mainfileid,
+                                                         	latestfiles=EXCLUDED.latestfiles,
+                                                         	latestfileindexes=EXCLUDED.latestfileindexes,
+                                                         	datecreated=EXCLUDED.datecreated,
+                                                         	datemodified=EXCLUDED.datemodified,
+                                                         	datereleased=EXCLUDED.datereleased,
+                                                         	allowmoddistribution=EXCLUDED.allowmoddistribution,
+                                                         	gamepopularityrank=EXCLUDED.gamepopularityrank,
+                                                         	isavailable=EXCLUDED.isavailable,
+                                                         	thumbsupcount=EXCLUDED.thumbsupcount,
+                                                         	rating=EXCLUDED.rating,
+                                                         	latestupdate=timezone('UTC'::text, now());
+
+                                                         """);
+
+                        cmd.Parameters.AddWithValue(mod.Id);
+                        cmd.Parameters.AddWithValue(mod.GameId);
+                        cmd.Parameters.AddWithValue(mod.Name);
+                        cmd.Parameters.AddWithValue(mod.Slug);
+                        cmd.Parameters.Add(new NpgsqlParameter()
+                        {
+                            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb, Value = JsonSerializer.Serialize(mod.Links)
+                        });
+                        cmd.Parameters.AddWithValue(mod.Summary.Replace("\0", ""));
+                        cmd.Parameters.AddWithValue((int)mod.Status);
+                        cmd.Parameters.AddWithValue(mod.DownloadCount);
+                        cmd.Parameters.AddWithValue(mod.IsFeatured);
+                        cmd.Parameters.AddWithValue(mod.PrimaryCategoryId);
+                        cmd.Parameters.Add(new NpgsqlParameter
+                        {
+                            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                            Value = JsonSerializer.Serialize(mod.Categories)
+                        });
+                        cmd.Parameters.Add(new NpgsqlParameter
+                        {
+                            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Integer,
+                            Value = (object?)mod.ClassId ?? DBNull.Value
+                        });
+                        cmd.Parameters.Add(new NpgsqlParameter
+                        {
+                            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb, Value = JsonSerializer.Serialize(mod.Authors)
+                        });
+                        cmd.Parameters.Add(new NpgsqlParameter
+                        {
+                            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb, Value = JsonSerializer.Serialize(mod.Logo)
+                        });
+                        cmd.Parameters.Add(new NpgsqlParameter
+                        {
+                            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                            Value = JsonSerializer.Serialize(mod.Screenshots)
+                        });
+                        cmd.Parameters.AddWithValue(mod.MainFileId);
+                        cmd.Parameters.Add(new NpgsqlParameter
+                        {
+                            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                            Value = JsonSerializer.Serialize(mod.LatestFiles)
+                        });
+                        cmd.Parameters.Add(new NpgsqlParameter
+                        {
+                            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                            Value = JsonSerializer.Serialize(mod.LatestFilesIndexes)
+                        });
+                        cmd.Parameters.AddWithValue(mod.DateCreated);
+                        cmd.Parameters.AddWithValue(mod.DateModified);
+                        cmd.Parameters.AddWithValue(mod.DateReleased);
+                        cmd.Parameters.Add(new NpgsqlParameter
+                        {
+                            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Boolean,
+                            Value = (object?)mod.AllowModDistribution ?? DBNull.Value
+                        });
+                        cmd.Parameters.AddWithValue(mod.GamePopularityRank);
+                        cmd.Parameters.AddWithValue(mod.IsAvailable);
+                        cmd.Parameters.AddWithValue(mod.ThumbsUpCount);
+                        cmd.Parameters.Add(new NpgsqlParameter
+                        {
+                            NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Double, Value = (object?)mod.Rating ?? DBNull.Value
+                        });
+
+                        batch.BatchCommands.Add(cmd);
+
+                        if (batch.BatchCommands.Count >= 1000)
+                        {
+                            if (!await ExecuteBatchWithRetries(batch))
+                            {
+                                // No-op for now, maybe Discord logs later
+                            }
+                        }
+                    }
+
+                    if (batch.BatchCommands.Count > 0)
+                    {
+                        if (!await ExecuteBatchWithRetries(batch))
+                        {
+                            // No-op for now, maybe Discord logs later
+                        }
+                    }
+
+                    await tx.CommitAsync();
+                }
+            }
+            
+            BackgroundJob.Schedule(() => StoreCFApiProjects.RunAsync(null), TimeSpan.FromMinutes(30));
+        }
+
+        private async static Task<bool> ExecuteBatchWithRetries(NpgsqlBatch batch, int retries = RETRY_BATCH)
+        {
+            for (var attempt = 1; attempt <= retries; attempt++)
+            {
+                try
+                {
+                    await batch.ExecuteNonQueryAsync();
+                    batch.BatchCommands.Clear();
+                    return true;
+                }
+                catch (Exception)
+                {
+                    if (attempt == retries)
+                    {
+                        return false;
+                    }
+
+                    await Task.Delay(1000 * attempt);
+                }
+            }
+
+            return false;
+        }
+
+        private static List<(int start, int end, int items)> GetBucketRanges(int start, int max)
+        {
+            var buckets = new List<(int start, int end, int items)>();
+
+            while (start <= max)
+            {
+                var bucketSize = Math.Min(BUCKET_SIZE, max - start + 1);
+                var bucket = Enumerable.Range(start, bucketSize);
+
+                buckets.Add((bucket.First(), bucket.Last(), bucket.Count()));
+                start += bucketSize;
+
+                if (start < 0)
+                {
+                    // We went around, stop it
+                    break;
+                }
+            }
+
+            return buckets;
+        }
+    }
+}
