@@ -115,7 +115,8 @@ public class Program
                 .UseRedisStorage(redis, new RedisStorageOptions
                 {
                     Db = 7,
-                    Prefix = "cflookup:"
+                    Prefix = "cflookup:",
+                    InvisibilityTimeout = TimeSpan.FromHours(6)
                 });
         });
 
