@@ -9,6 +9,7 @@ using System.Text.Json;
 
 namespace CFLookup.Jobs
 {
+    [AutomaticRetry(Attempts = 0)]
     public class StoreCFApiFiles
     {
         const int BUCKET_SIZE = 10_000;
