@@ -190,6 +190,10 @@ public class Program
         if (!SharedMethods.CheckIfTaskIsScheduledOrInProgress("StoreCFApiProjects", "RunAsync"))
         {
             BackgroundJob.Schedule(() => StoreCFApiProjects.RunAsync(null), TimeSpan.FromSeconds(10));
+        }
+
+        if(!SharedMethods.CheckIfTaskIsScheduledOrInProgress("StoreCFApiFiles", "RunAsync"))
+        {
             BackgroundJob.Schedule(() => StoreCFApiFiles.RunAsync(null), TimeSpan.FromSeconds(10));
         }
 #endif
