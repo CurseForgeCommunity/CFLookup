@@ -1,6 +1,5 @@
 ﻿using CurseForge.APIClient;
 using CurseForge.APIClient.Models.Files;
-using CurseForge.APIClient.Models.Mods;
 using Hangfire;
 using Hangfire.Server;
 using Npgsql;
