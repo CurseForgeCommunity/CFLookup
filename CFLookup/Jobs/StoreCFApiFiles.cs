@@ -1,4 +1,5 @@
 ﻿using CurseForge.APIClient;
+using CurseForge.APIClient.Models.Files;
 using CurseForge.APIClient.Models.Mods;
 using Hangfire;
 using Hangfire.Server;
@@ -8,11 +9,10 @@ using System.Text.Json;
 
 namespace CFLookup.Jobs
 {
-    [AutomaticRetry(Attempts = 0)]
-    public class StoreCFApiProjects
+    public class StoreCFApiFiles
     {
         const int BUCKET_SIZE = 10_000;
-        private const int EMPTY_BUCKETS = 25;
+        private const int EMPTY_BUCKETS = 300;
         private const int RETRY_BATCH = 3;
 
         public async static Task RunAsync(PerformContext context)
@@ -36,10 +36,9 @@ namespace CFLookup.Jobs
                     {
                         var _bucket = Enumerable.Range(bucket.start, bucket.items);
 
-                        var modList = await cfClient.GetModsByIdListAsync(new GetModsByIdsListRequestBody
+                        var modList = await cfClient.GetFilesAsync(new GetModFilesRequestBody
                         {
-                            FilterPcOnly = true,
-                            ModIds = _bucket.ToList()
+                            FileIds = _bucket.ToList()
                         });
 
                         if (modList.Error != null && modList.Error.ErrorCode != 404)
@@ -70,33 +69,33 @@ namespace CFLookup.Jobs
                         {
                             var cmd = new NpgsqlBatchCommand("""
 
-                                                             INSERT INTO project_data (
-                                                             	projectid,
+                                                             INSERT INTO file_data (
+                                                                fileid,
                                                              	gameid,
-                                                             	name,
-                                                             	slug,
-                                                             	links,
-                                                             	summary,
-                                                             	status,
-                                                             	downloadcount,
-                                                             	isfeatured,
-                                                             	primarycategoryid,
-                                                             	categories,
-                                                             	classid,
-                                                             	authors,
-                                                             	logo,
-                                                             	screenshots,
-                                                             	mainfileid,
-                                                             	latestfiles,
-                                                             	latestfileindexes,
-                                                             	datecreated,
-                                                             	datemodified,
-                                                             	datereleased,
-                                                             	allowmoddistribution,
-                                                             	gamepopularityrank,
+                                                             	projectid,
                                                              	isavailable,
-                                                             	thumbsupcount,
-                                                             	rating
+                                                             	displayname,
+                                                             	filename,
+                                                             	releasetype,
+                                                             	filestatus,
+                                                             	hashes,
+                                                             	filedate,
+                                                             	filelength,
+                                                             	filesizeondisk,
+                                                             	downloadcount,
+                                                             	downloadurl,
+                                                             	gameversions,
+                                                             	sortablegameversions,
+                                                             	dependencies,
+                                                             	exposeasalternative,
+                                                             	parentprojectfileid,
+                                                             	alternatefileid,
+                                                             	isserverpack,
+                                                             	serverpackfileid,
+                                                             	isearlyaccesscontent,
+                                                             	earlyaccessenddate,
+                                                             	filefingerprint,
+                                                             	modules
                                                              ) 
                                                              VALUES (
                                                              	$1,
@@ -126,101 +125,112 @@ namespace CFLookup.Jobs
                                                              	$25,
                                                              	$26
                                                              )
-                                                             ON CONFLICT (projectid, gameid) DO UPDATE
-                                                             SET 
-                                                             	name=EXCLUDED.name,
-                                                             	slug=EXCLUDED.slug,
-                                                             	links=EXCLUDED.links,
-                                                             	summary=EXCLUDED.summary,
-                                                             	status=EXCLUDED.status,
+                                                             ON CONFLICT (fileid, gameid, projectid) DO UPDATE
+                                                             SET
+                                                                isavailable=EXCLUDED.isavailable,
+                                                             	displayname=EXCLUDED.displayname,
+                                                             	filename=EXCLUDED.filename,
+                                                             	releasetype=EXCLUDED.releasetype,
+                                                             	filestatus=EXCLUDED.filestatus,
+                                                             	hashes=EXCLUDED.hashes,
+                                                             	filedate=EXCLUDED.filedate,
+                                                             	filelength=EXCLUDED.filelength,
+                                                             	filesizeondisk=EXCLUDED.filesizeondisk,
                                                              	downloadcount=EXCLUDED.downloadcount,
-                                                             	isfeatured=EXCLUDED.isfeatured,
-                                                             	primarycategoryid=EXCLUDED.primarycategoryid,
-                                                             	categories=EXCLUDED.categories,
-                                                             	classid=EXCLUDED.classid,
-                                                             	authors=EXCLUDED.authors,
-                                                             	logo=EXCLUDED.logo,
-                                                             	screenshots=EXCLUDED.screenshots,
-                                                             	mainfileid=EXCLUDED.mainfileid,
-                                                             	latestfiles=EXCLUDED.latestfiles,
-                                                             	latestfileindexes=EXCLUDED.latestfileindexes,
-                                                             	datecreated=EXCLUDED.datecreated,
-                                                             	datemodified=EXCLUDED.datemodified,
-                                                             	datereleased=EXCLUDED.datereleased,
-                                                             	allowmoddistribution=EXCLUDED.allowmoddistribution,
-                                                             	gamepopularityrank=EXCLUDED.gamepopularityrank,
-                                                             	isavailable=EXCLUDED.isavailable,
-                                                             	thumbsupcount=EXCLUDED.thumbsupcount,
-                                                             	rating=EXCLUDED.rating,
+                                                             	downloadurl=EXCLUDED.downloadurl,
+                                                             	gameversions=EXCLUDED.gameversions,
+                                                             	sortablegameversions=EXCLUDED.sortablegameversions,
+                                                             	dependencies=EXCLUDED.dependencies,
+                                                             	exposeasalternative=EXCLUDED.exposeasalternative,
+                                                             	parentprojectfileid=EXCLUDED.parentprojectfileid,
+                                                             	alternatefileid=EXCLUDED.alternatefileid,
+                                                             	isserverpack=EXCLUDED.isserverpack,
+                                                             	serverpackfileid=EXCLUDED.serverpackfileid,
+                                                             	isearlyaccesscontent=EXCLUDED.isearlyaccesscontent,
+                                                             	earlyaccessenddate=EXCLUDED.earlyaccessenddate,
+                                                             	filefingerprint=EXCLUDED.filefingerprint,
+                                                             	modules=EXCLUDED.modules,
                                                              	latestupdate=timezone('UTC'::text, now());
-
                                                              """);
 
                             cmd.Parameters.AddWithValue(mod.Id);
                             cmd.Parameters.AddWithValue(mod.GameId);
-                            cmd.Parameters.AddWithValue(mod.Name);
-                            cmd.Parameters.AddWithValue(mod.Slug);
+                            cmd.Parameters.AddWithValue(mod.ModId);
+                            cmd.Parameters.AddWithValue(mod.IsAvailable);
+                            cmd.Parameters.AddWithValue(mod.DisplayName);
+                            cmd.Parameters.AddWithValue(mod.FileName);
+                            cmd.Parameters.AddWithValue((int)mod.ReleaseType);
+                            cmd.Parameters.AddWithValue((int)mod.FileStatus);
                             cmd.Parameters.Add(new NpgsqlParameter()
                             {
                                 NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.Links)
+                                Value = JsonSerializer.Serialize(mod.Hashes)
                             });
-                            cmd.Parameters.AddWithValue(mod.Summary.Replace("\0", ""));
-                            cmd.Parameters.AddWithValue((int)mod.Status);
-                            cmd.Parameters.AddWithValue(mod.DownloadCount);
-                            cmd.Parameters.AddWithValue(mod.IsFeatured);
-                            cmd.Parameters.AddWithValue(mod.PrimaryCategoryId);
+                            cmd.Parameters.AddWithValue(mod.FileDate);
+                            cmd.Parameters.AddWithValue(mod.FileLength);
                             cmd.Parameters.Add(new NpgsqlParameter
                             {
+                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Bigint,
+                                Value = (object?)mod.FileSizeOnDisk ?? DBNull.Value
+                            });
+                            cmd.Parameters.AddWithValue(mod.DownloadCount);
+                            cmd.Parameters.AddWithValue(mod.DownloadUrl ?? string.Empty);
+                            cmd.Parameters.Add(new NpgsqlParameter()
+                            {
                                 NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.Categories)
+                                Value = JsonSerializer.Serialize(mod.GameVersions)
+                            });
+                            cmd.Parameters.Add(new NpgsqlParameter()
+                            {
+                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                                Value = JsonSerializer.Serialize(mod.SortableGameVersions)
+                            });
+                            cmd.Parameters.Add(new NpgsqlParameter()
+                            {
+                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                                Value = JsonSerializer.Serialize(mod.Dependencies)
+                            });
+                            
+                            cmd.Parameters.Add(new NpgsqlParameter
+                            {
+                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Boolean,
+                                Value = (object?)mod.ExposeAsAlternative ?? DBNull.Value
                             });
                             cmd.Parameters.Add(new NpgsqlParameter
                             {
                                 NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Integer,
-                                Value = (object?)mod.ClassId ?? DBNull.Value
+                                Value = (object?)mod.ParentProjectFileId ?? DBNull.Value
                             });
                             cmd.Parameters.Add(new NpgsqlParameter
                             {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.Authors)
+                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Integer,
+                                Value = (object?)mod.AlternateFileId ?? DBNull.Value
                             });
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.Logo)
-                            });
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.Screenshots)
-                            });
-                            cmd.Parameters.AddWithValue(mod.MainFileId);
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.LatestFiles)
-                            });
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.LatestFilesIndexes)
-                            });
-                            cmd.Parameters.AddWithValue(mod.DateCreated);
-                            cmd.Parameters.AddWithValue(mod.DateModified);
-                            cmd.Parameters.AddWithValue(mod.DateReleased);
                             cmd.Parameters.Add(new NpgsqlParameter
                             {
                                 NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Boolean,
-                                Value = (object?)mod.AllowModDistribution ?? DBNull.Value
+                                Value = (object?)mod.IsServerPack ?? DBNull.Value
                             });
-                            cmd.Parameters.AddWithValue(mod.GamePopularityRank);
-                            cmd.Parameters.AddWithValue(mod.IsAvailable);
-                            cmd.Parameters.AddWithValue(mod.ThumbsUpCount);
                             cmd.Parameters.Add(new NpgsqlParameter
                             {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Double,
-                                Value = (object?)mod.Rating ?? DBNull.Value
+                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Integer,
+                                Value = (object?)mod.ServerPackFileId ?? DBNull.Value
+                            });
+                            cmd.Parameters.Add(new NpgsqlParameter
+                            {
+                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Boolean,
+                                Value = (object?)mod.IsEarlyAccessContent ?? DBNull.Value
+                            });
+                            cmd.Parameters.Add(new NpgsqlParameter
+                            {
+                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.TimestampTz,
+                                Value = (object?)mod.EarlyAccessEndDate ?? DBNull.Value
+                            });
+                            cmd.Parameters.AddWithValue(mod.FileFingerprint);
+                            cmd.Parameters.Add(new NpgsqlParameter()
+                            {
+                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                                Value = JsonSerializer.Serialize(mod.Modules)
                             });
 
                             batch.BatchCommands.Add(cmd);
@@ -252,7 +262,7 @@ namespace CFLookup.Jobs
                 }
                 finally
                 {
-                    BackgroundJob.Schedule(() => StoreCFApiProjects.RunAsync(null), TimeSpan.FromMinutes(30));
+                    BackgroundJob.Schedule(() => StoreCFApiFiles.RunAsync(null), TimeSpan.FromMinutes(30));
                 }
             }
         }
@@ -271,7 +281,7 @@ namespace CFLookup.Jobs
                 if (!string.IsNullOrWhiteSpace(discordWebhook))
                 {
                     var message =
-                        @$"An error occurred while trying to store all projects from CurseForge, the command will run again in 30 minutes.
+                        @$"An error occurred while trying to store all project files from CurseForge, the command will run again in 30 minutes.
 {webhookMessage}";
                     var payload = new
                     {

@@ -475,5 +475,27 @@ WHERE RowNumber = 1
 
             return jobs.Any(s => s == $"{taskName}.{methodName}");
         }
+
+        public static List<(int start, int end, int items)> GetBucketRanges(int start, int max, int bucket_size)
+        {
+            var buckets = new List<(int start, int end, int items)>();
+
+            while (start <= max)
+            {
+                var bucketSize = Math.Min(bucket_size, max - start + 1);
+                var bucket = Enumerable.Range(start, bucketSize);
+
+                buckets.Add((bucket.First(), bucket.Last(), bucket.Count()));
+                start += bucketSize;
+
+                if (start < 0)
+                {
+                    // We went around, stop it
+                    break;
+                }
+            }
+
+            return buckets;
+        }
     }
 }
