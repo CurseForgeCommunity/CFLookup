@@ -262,7 +262,7 @@ namespace CFLookup.Jobs
                 }
                 finally
                 {
-                    BackgroundJob.Schedule(() => StoreCFApiFiles.RunAsync(null), TimeSpan.FromMinutes(30));
+                    BackgroundJob.Schedule(() => StoreCFApiFiles.RunAsync(null), TimeSpan.FromSeconds(10));
                 }
             }
         }
