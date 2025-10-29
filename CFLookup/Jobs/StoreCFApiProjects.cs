@@ -15,12 +15,14 @@ namespace CFLookup.Jobs
         private const int EMPTY_BUCKETS = 25;
         private const int RETRY_BATCH = 3;
 
-        public async static Task RunAsync(PerformContext context)
+        public async static Task RunAsync(PerformContext context, IJobCancellationToken token)
         {
             using (var scope = Program.ServiceProvider.CreateScope())
             {
                 try
                 {
+                    token.ThrowIfCancellationRequested();
+                    
                     var cfClient = scope.ServiceProvider.GetRequiredService<ApiClient>();
                     cfClient.RequestDelay = TimeSpan.FromSeconds(0.05);
                     cfClient.RequestTimeout = TimeSpan.FromMinutes(5);
@@ -34,6 +36,8 @@ namespace CFLookup.Jobs
 
                     foreach (var bucket in buckets)
                     {
+                        token.ThrowIfCancellationRequested();
+                        
                         var _bucket = Enumerable.Range(bucket.start, bucket.items);
 
                         var modList = await cfClient.GetModsByIdListAsync(new GetModsByIdsListRequestBody
@@ -41,6 +45,8 @@ namespace CFLookup.Jobs
                             FilterPcOnly = true,
                             ModIds = _bucket.ToList()
                         });
+                        
+                        token.ThrowIfCancellationRequested();
 
                         if (modList.Error != null && modList.Error.ErrorCode != 404)
                         {
@@ -65,9 +71,13 @@ namespace CFLookup.Jobs
                         await using var batch = new NpgsqlBatch(conn);
                         batch.Transaction = tx;
                         batch.Timeout = 600;
+                        
+                        token.ThrowIfCancellationRequested();
 
                         foreach (var mod in modList.Data)
                         {
+                            token.ThrowIfCancellationRequested();
+                            
                             var cmd = new NpgsqlBatchCommand("""
 
                                                              INSERT INTO project_data (
@@ -231,6 +241,7 @@ namespace CFLookup.Jobs
                                 {
                                     // No-op for now, maybe Discord logs later
                                 }
+                                token.ThrowIfCancellationRequested();
                             }
                         }
 
@@ -240,11 +251,13 @@ namespace CFLookup.Jobs
                             {
                                 // No-op for now, maybe Discord logs later
                             }
+                            token.ThrowIfCancellationRequested();
                         }
 
                         await tx.CommitAsync();
                     }
-
+                    
+                    token.ThrowIfCancellationRequested();
                 }
                 catch (Exception ex)
                 {
@@ -252,7 +265,7 @@ namespace CFLookup.Jobs
                 }
                 finally
                 {
-                    BackgroundJob.Schedule(() => StoreCFApiFiles.RunAsync(null), TimeSpan.FromSeconds(10));
+                    BackgroundJob.Schedule(() => StoreCFApiFiles.RunAsync(null, JobCancellationToken.Null), TimeSpan.FromSeconds(10));
                 }
             }
         }

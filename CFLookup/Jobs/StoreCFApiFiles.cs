@@ -15,7 +15,7 @@ namespace CFLookup.Jobs
         private const int EMPTY_BUCKETS = 300;
         private const int RETRY_BATCH = 3;
 
-        public async static Task RunAsync(PerformContext context)
+        public async static Task RunAsync(PerformContext context, IJobCancellationToken token)
         {
             using (var scope = Program.ServiceProvider.CreateScope())
             {
@@ -34,12 +34,16 @@ namespace CFLookup.Jobs
 
                     foreach (var bucket in buckets)
                     {
+                        token.ThrowIfCancellationRequested();
+                        
                         var _bucket = Enumerable.Range(bucket.start, bucket.items);
 
                         var modList = await cfClient.GetFilesAsync(new GetModFilesRequestBody
                         {
                             FileIds = _bucket.ToList()
                         });
+                        
+                        token.ThrowIfCancellationRequested();
 
                         if (modList.Error != null && modList.Error.ErrorCode != 404)
                         {
@@ -64,9 +68,13 @@ namespace CFLookup.Jobs
                         await using var batch = new NpgsqlBatch(conn);
                         batch.Transaction = tx;
                         batch.Timeout = 600;
+                        
+                        token.ThrowIfCancellationRequested();
 
                         foreach (var mod in modList.Data)
                         {
+                            token.ThrowIfCancellationRequested();
+                            
                             var cmd = new NpgsqlBatchCommand("""
 
                                                              INSERT INTO file_data (
@@ -241,6 +249,8 @@ namespace CFLookup.Jobs
                                 {
                                     // No-op for now, maybe Discord logs later
                                 }
+                                
+                                token.ThrowIfCancellationRequested();
                             }
                         }
 
@@ -250,11 +260,12 @@ namespace CFLookup.Jobs
                             {
                                 // No-op for now, maybe Discord logs later
                             }
+                            
+                            token.ThrowIfCancellationRequested();
                         }
 
                         await tx.CommitAsync();
                     }
-
                 }
                 catch (Exception ex)
                 {
@@ -262,7 +273,7 @@ namespace CFLookup.Jobs
                 }
                 finally
                 {
-                    BackgroundJob.Schedule(() => StoreCFApiProjects.RunAsync(null), TimeSpan.FromSeconds(10));
+                    BackgroundJob.Schedule(() => StoreCFApiProjects.RunAsync(null, JobCancellationToken.Null), TimeSpan.FromSeconds(10));
                 }
             }
         }
