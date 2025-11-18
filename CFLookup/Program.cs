@@ -101,6 +101,9 @@ public class Program
         var redis = ConnectionMultiplexer.Connect(redisServer);
 
         builder.Services.AddSingleton(redis);
+        
+        builder.Services.AddDataProtection()
+            .PersistKeysToStackExchangeRedis(redis, "CFLookup-DataProtection-Keys");
 
         builder.Services.AddScoped(x => new SqlConnection(dbConnectionString));
         
