@@ -1,4 +1,5 @@
 using CFLookup;
+using Microsoft.AspNetCore.DataProtection;
 #if !DEBUG
 using CFLookup.Jobs;
 using Hangfire;
@@ -100,6 +101,10 @@ public class Program
         var redis = ConnectionMultiplexer.Connect(redisServer);
 
         builder.Services.AddSingleton(redis);
+        
+        builder.Services.AddDataProtection()
+            .PersistKeysToStackExchangeRedis(redis, "CFLookup-DataProtection-Keys");
+        
 
         builder.Services.AddScoped(x => new SqlConnection(dbConnectionString));
         

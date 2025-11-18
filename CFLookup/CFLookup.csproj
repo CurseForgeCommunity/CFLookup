@@ -14,6 +14,7 @@
 	  <PackageReference Include="Hangfire.AspNetCore" Version="1.8.21" />
 	  <PackageReference Include="Hangfire.Dashboard.BasicAuthorization" Version="1.0.2" />
 	  <PackageReference Include="Hangfire.Redis.StackExchange" Version="1.12.0" />
+	  <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.0" />
 	  <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.5" />
 	  <PackageReference Include="Highsoft.Highcharts" Version="11.4.6.5" />
 	  <PackageReference Include="Highsoft.Highstock" Version="11.4.6.5" />
