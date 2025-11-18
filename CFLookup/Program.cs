@@ -191,7 +191,8 @@ public class Program
         RecurringJob.AddOrUpdate("cflookup:SaveMinecraftModStats", () => SaveMinecraftModStats.RunAsync(null), Cron.Hourly());
         RecurringJob.AddOrUpdate("cflookup:CacheMCStatsOvertime", () => CacheMCOverTime.RunAsync(null), "*/30 * * * *");
         
-        if (!SharedMethods.CheckIfTaskIsScheduledOrInProgress("StoreCFApiProjects", "RunAsync"))
+        if (!SharedMethods.CheckIfTaskIsScheduledOrInProgress("StoreCFApiProjects", "RunAsync") &&
+            !SharedMethods.CheckIfTaskIsScheduledOrInProgress("StoreCFApiFiles", "RunAsync"))
         {
             BackgroundJob.Schedule(() => StoreCFApiProjects.RunAsync(null, JobCancellationToken.Null), TimeSpan.FromSeconds(10));
         }

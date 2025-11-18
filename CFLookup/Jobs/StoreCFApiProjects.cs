@@ -17,6 +17,11 @@ namespace CFLookup.Jobs
 
         public async static Task RunAsync(PerformContext context, IJobCancellationToken token)
         {
+            if (SharedMethods.CheckIfTaskIsScheduledOrInProgress("StoreCFApiFiles", "RunAsync"))
+            {
+                return;
+            }
+
             using (var scope = Program.ServiceProvider.CreateScope())
             {
                 try
