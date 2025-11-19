@@ -20,7 +20,6 @@ namespace CFLookup.Jobs
             using (var scope = Program.ServiceProvider.CreateScope())
             {
                 var cfClient = scope.ServiceProvider.GetRequiredService<ApiClient>();
-                cfClient.RequestTimeout = TimeSpan.FromMinutes(10);
                 var db = scope.ServiceProvider.GetRequiredService<MSSQLDB>();
                 var _redis = scope.ServiceProvider.GetRequiredService<ConnectionMultiplexer>();
 

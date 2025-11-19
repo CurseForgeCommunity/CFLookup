@@ -27,8 +27,6 @@ namespace CFLookup.Jobs
                 try
                 {
                     var cfClient = scope.ServiceProvider.GetRequiredService<ApiClient>();
-                    cfClient.RequestDelay = TimeSpan.FromSeconds(0.05);
-                    cfClient.RequestTimeout = TimeSpan.FromMinutes(5);
 
                     var conn = scope.ServiceProvider.GetRequiredService<NpgsqlConnection>();
                     await conn.OpenAsync();
