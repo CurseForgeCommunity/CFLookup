@@ -4,7 +4,7 @@ namespace CFLookup
 {
     public sealed class RedisJobLock : IAsyncDisposable
     {
-        private readonly ILogger<RedisJobLock> _logger;
+        private readonly ILogger _logger;
         private readonly TimeSpan _expiryTime;
         private string _lockKey { get; }
 
@@ -13,7 +13,7 @@ namespace CFLookup
         private readonly CancellationTokenSource _cts;
         private Task? _refreshLockTask;
 
-        private RedisJobLock(IDatabase database, string lockName, ILogger<RedisJobLock> logger, TimeSpan expiryTime)
+        private RedisJobLock(IDatabase database, string lockName, ILogger logger, TimeSpan expiryTime)
         {
             _logger = logger;
             _expiryTime = expiryTime;
@@ -28,7 +28,7 @@ namespace CFLookup
         public async static Task<RedisJobLock?> CreateAsync(
             IDatabase database,
             string lockName,
-            ILogger<RedisJobLock> logger,
+            ILogger logger,
             TimeSpan expiryTime
         )
         {
