@@ -20,6 +20,8 @@ public class Program
     private static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+        
+        builder.Services.AddLogging(_builder => _builder.AddConsole());
 
         builder.Services.AddResponseCompression(options =>
         {

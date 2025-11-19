@@ -2,94 +2,125 @@
 
 namespace CFLookup
 {
-    public class RedisJobLock : IDisposable
+    public sealed class RedisJobLock : IAsyncDisposable
     {
-        private readonly ConnectionMultiplexer _connectionMultiplexer;
-        private string TypeName { get; set; }
-        private string Handle { get; set; }
+        private readonly ILogger<RedisJobLock> _logger;
+        private readonly TimeSpan _expiryTime;
+        private string _lockKey { get; }
 
-        private IDatabase RDB { get { return _connectionMultiplexer.GetDatabase(0); } }
-        private Guid LockInstance;
-        private CancellationToken _cancellationToken;
-        private readonly CancellationTokenSource CTS;
+        private IDatabase _redisDatabase { get; }
+        private readonly string _lockOwner;
+        private readonly CancellationTokenSource _cts;
+        private Task? _refreshLockTask;
 
-        public RedisJobLock(ConnectionMultiplexer connectionMultiplexer, string lockName)
+        private RedisJobLock(IDatabase database, string lockName, ILogger<RedisJobLock> logger, TimeSpan expiryTime)
         {
-            _connectionMultiplexer = connectionMultiplexer;
-            CTS = new CancellationTokenSource();
+            _logger = logger;
+            _expiryTime = expiryTime;
+            _redisDatabase = database;
 
-            TypeName = lockName;
-            LockInstance = Guid.NewGuid();
-            _cancellationToken = CTS.Token;
+            _lockOwner = Guid.NewGuid().ToString();
 
-            Handle = GetHandle(TypeName);
+            _lockKey = $"joblock:{lockName}";
+            _cts = new CancellationTokenSource();
         }
 
-        public bool IsLocked(string lockName)
+        public async static Task<RedisJobLock?> CreateAsync(
+            IDatabase database,
+            string lockName,
+            ILogger<RedisJobLock> logger,
+            TimeSpan expiryTime
+        )
         {
-            var handle = GetHandle(lockName);
-            return RDB.LockQuery(handle) != RedisValue.Null;
+            var distributedLock = new RedisJobLock(database, lockName, logger, expiryTime);
+
+            var lockAcquired = await database.LockTakeAsync(
+                distributedLock._lockKey,
+                distributedLock._lockOwner,
+                distributedLock._expiryTime);
+
+            if (lockAcquired)
+            {
+                distributedLock.StartRenewalTask();
+                logger.LogDebug("Lock acquired for key {LockKey} by owner {LockOwner}", distributedLock._lockKey, distributedLock._lockOwner);
+                return distributedLock;
+            }
+            
+            logger.LogDebug("Failed to acquire lock for key {LockKey}", distributedLock._lockKey);
+            return null;
         }
 
-        private static string GetHandle(string lockName)
+        private void StartRenewalTask()
         {
-            return $"joblock:{lockName}";
+            _refreshLockTask = Task.Run(async () =>
+            {
+                var renewalDelay = TimeSpan.FromMilliseconds(_expiryTime.TotalMilliseconds / 2.5);
+
+                while (!_cts.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await Task.Delay(renewalDelay, _cts.Token);
+
+                        var renewed = await _redisDatabase.LockExtendAsync(_lockKey, _lockOwner, _expiryTime);
+
+                        if (renewed)
+                        {
+                            _logger.LogDebug("Renewed lock for key {LockKey}", _lockKey);
+                        }
+                        else
+                        {
+                            _logger.LogError("Failed to renew lock for key {LockKey}. Lock has been lost.", _lockKey);
+                            break;
+                        }
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to renew lock for key {LockKey} due to exception.", _lockKey);
+                        break;
+                    }
+                }
+            });
         }
 
-        TimeSpan LockTime = TimeSpan.FromSeconds(15);
-
-        Task _refreshLockTask;
-        async Task RefreshLockAsync()
+        public async ValueTask DisposeAsync()
         {
+            if (_refreshLockTask == null)
+            {
+                return;
+            }
+            
+            _logger.LogDebug($"Releasing lock {_lockKey} / {_lockOwner}");
+
+            if (!_cts.IsCancellationRequested)
+            {
+                await _cts.CancelAsync();
+            }
+
+            var released = await _redisDatabase.LockReleaseAsync(_lockKey, _lockOwner);
+            if (!released)
+            {
+                _logger.LogWarning("Failed to release lock for key {LockKey}, it may have expired already", _lockKey);
+            }
+            else
+            {
+                _logger.LogDebug("Released lock for key {LockKey}", _lockKey);
+            }
+
             try
             {
-                await Task.Delay(LockTime.Subtract(TimeSpan.FromMilliseconds(LockTime.TotalMilliseconds / 2)), _cancellationToken);
-                KeepLocked();
-                _refreshLockTask = RefreshLockAsync();
-                _ = PubSubLog($"Refreshing lock {Handle} / {LockInstance}");
+                await _refreshLockTask;
             }
-            catch (TaskCanceledException)
+            catch (Exception ex)
             {
-                /* This is totally ok, we cancelled it */
+                _logger.LogError(ex, "Failed to refresh lock for key {LockKey}", _lockKey);
             }
-        }
-
-        private void KeepLocked()
-        {
-            RDB.LockExtend(Handle, LockInstance.ToString(), LockTime);
-        }
-
-        public async Task KeepLockedAsync()
-        {
-            await RDB.LockExtendAsync(Handle, LockInstance.ToString(), LockTime);
-        }
-
-        public bool TryTakeLock()
-        {
-            var couldTakeLock = RDB.LockTake(Handle, LockInstance.ToString(), LockTime);
-            if (couldTakeLock) _refreshLockTask = RefreshLockAsync();
-            _ = PubSubLog($"Could {(couldTakeLock ? "" : "not ")}take lock for {Handle} / {LockInstance}");
-            return couldTakeLock;
-        }
-
-        public async Task<bool> TryTakeLockAsync()
-        {
-            var couldTakeLock = await RDB.LockTakeAsync(Handle, LockInstance.ToString(), LockTime);
-            if (couldTakeLock) _refreshLockTask = RefreshLockAsync();
-            _ = PubSubLog($"Could {(couldTakeLock ? "" : "not ")}take lock for {Handle} / {LockInstance}");
-            return couldTakeLock;
-        }
-
-        internal async Task PubSubLog(string logmessage)
-        {
-            await _connectionMultiplexer.GetSubscriber().PublishAsync("LockMessages/CFLookup", logmessage);
-        }
-
-        public void Dispose()
-        {
-            _ = PubSubLog($"Releasing lock {Handle} / {LockInstance}");
-            RDB.LockRelease(Handle, LockInstance.ToString());
-            CTS.Cancel();
+            
+            _cts.Dispose();
         }
     }
 }

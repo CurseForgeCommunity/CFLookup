@@ -25,9 +25,13 @@ namespace CFLookup.Jobs
 
                 var _db = _redis.GetDatabase(5);
 
-                using (var jobLock = new RedisJobLock(_redis, "GetLatestUpdatedModPerGame"))
+                await using (var jobLock = await RedisJobLock.CreateAsync(
+                           _redis.GetDatabase(0), 
+                           "GetLatestUpdatedModPerGame",
+                           scope.ServiceProvider.GetRequiredService<Logger<RedisJobLock>>(),
+                           TimeSpan.FromSeconds(15)))
                 {
-                    if (!await jobLock.TryTakeLockAsync())
+                    if (jobLock == null)
                     {
                         return;
                     }
