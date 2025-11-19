@@ -4,7 +4,6 @@ namespace CFLookup
 {
     public sealed class RedisJobLock : IAsyncDisposable
     {
-        private readonly ILogger _logger;
         private readonly TimeSpan _expiryTime;
         private string _lockKey { get; }
 
@@ -13,9 +12,8 @@ namespace CFLookup
         private readonly CancellationTokenSource _cts;
         private Task? _refreshLockTask;
 
-        private RedisJobLock(IDatabase database, string lockName, ILogger logger, TimeSpan expiryTime)
+        private RedisJobLock(IDatabase database, string lockName, TimeSpan expiryTime)
         {
-            _logger = logger;
             _expiryTime = expiryTime;
             _redisDatabase = database;
 
@@ -28,11 +26,10 @@ namespace CFLookup
         public async static Task<RedisJobLock?> CreateAsync(
             IDatabase database,
             string lockName,
-            ILogger logger,
             TimeSpan expiryTime
         )
         {
-            var distributedLock = new RedisJobLock(database, lockName, logger, expiryTime);
+            var distributedLock = new RedisJobLock(database, lockName, expiryTime);
 
             var lockAcquired = await database.LockTakeAsync(
                 distributedLock._lockKey,
@@ -42,11 +39,11 @@ namespace CFLookup
             if (lockAcquired)
             {
                 distributedLock.StartRenewalTask();
-                logger.LogDebug("Lock acquired for key {LockKey} by owner {LockOwner}", distributedLock._lockKey, distributedLock._lockOwner);
+                //logger.LogDebug("Lock acquired for key {LockKey} by owner {LockOwner}", distributedLock._lockKey, distributedLock._lockOwner);
                 return distributedLock;
             }
             
-            logger.LogDebug("Failed to acquire lock for key {LockKey}", distributedLock._lockKey);
+            //logger.LogDebug("Failed to acquire lock for key {LockKey}", distributedLock._lockKey);
             return null;
         }
 
@@ -66,11 +63,11 @@ namespace CFLookup
 
                         if (renewed)
                         {
-                            _logger.LogDebug("Renewed lock for key {LockKey}", _lockKey);
+                            //_logger.LogDebug("Renewed lock for key {LockKey}", _lockKey);
                         }
                         else
                         {
-                            _logger.LogError("Failed to renew lock for key {LockKey}. Lock has been lost.", _lockKey);
+                            //_logger.LogError("Failed to renew lock for key {LockKey}. Lock has been lost.", _lockKey);
                             break;
                         }
                     }
@@ -80,7 +77,7 @@ namespace CFLookup
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Failed to renew lock for key {LockKey} due to exception.", _lockKey);
+                        //_logger.LogError(ex, "Failed to renew lock for key {LockKey} due to exception.", _lockKey);
                         break;
                     }
                 }
@@ -94,7 +91,7 @@ namespace CFLookup
                 return;
             }
             
-            _logger.LogDebug($"Releasing lock {_lockKey} / {_lockOwner}");
+            //_logger.LogDebug($"Releasing lock {_lockKey} / {_lockOwner}");
 
             if (!_cts.IsCancellationRequested)
             {
@@ -104,11 +101,11 @@ namespace CFLookup
             var released = await _redisDatabase.LockReleaseAsync(_lockKey, _lockOwner);
             if (!released)
             {
-                _logger.LogWarning("Failed to release lock for key {LockKey}, it may have expired already", _lockKey);
+                //_logger.LogWarning("Failed to release lock for key {LockKey}, it may have expired already", _lockKey);
             }
             else
             {
-                _logger.LogDebug("Released lock for key {LockKey}", _lockKey);
+               // _logger.LogDebug("Released lock for key {LockKey}", _lockKey);
             }
 
             try
@@ -117,7 +114,7 @@ namespace CFLookup
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to refresh lock for key {LockKey}", _lockKey);
+                //_logger.LogError(ex, "Failed to refresh lock for key {LockKey}", _lockKey);
             }
             
             _cts.Dispose();
