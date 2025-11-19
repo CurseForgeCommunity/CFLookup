@@ -130,7 +130,7 @@ public class Program
 #endif
         builder.Services.AddScoped(options => new CurseForge.APIClient.ApiClient(cfApiKey, 201, "whatcfprojectisthat@nolifeking85.tv")
         {
-            RequestDelay = TimeSpan.FromSeconds(1),
+            RequestDelay = TimeSpan.FromSeconds(5),
             RequestTimeout = TimeSpan.FromMinutes(10)
         });
 
