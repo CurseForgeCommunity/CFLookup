@@ -20,7 +20,10 @@ public class Program
     private static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        
+
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConsole();
+
         builder.Services.AddLogging(_builder => _builder.AddConsole());
 
         builder.Services.AddResponseCompression(options =>
@@ -55,40 +58,43 @@ public class Program
 
         var hangfireUser = string.Empty;
         var hangfirePassword = string.Empty;
-        
+
         var pgsqlConnString = string.Empty;
 
         if (OperatingSystem.IsWindows())
         {
             cfApiKey = Environment.GetEnvironmentVariable("CFAPI_Key", EnvironmentVariableTarget.Machine) ??
-                Environment.GetEnvironmentVariable("CFAPI_Key", EnvironmentVariableTarget.User) ??
-                Environment.GetEnvironmentVariable("CFAPI_Key", EnvironmentVariableTarget.Process) ??
-                string.Empty;
+                       Environment.GetEnvironmentVariable("CFAPI_Key", EnvironmentVariableTarget.User) ??
+                       Environment.GetEnvironmentVariable("CFAPI_Key", EnvironmentVariableTarget.Process) ??
+                       string.Empty;
 
             redisServer = Environment.GetEnvironmentVariable("RedisServer", EnvironmentVariableTarget.Machine) ??
-                Environment.GetEnvironmentVariable("RedisServer", EnvironmentVariableTarget.User) ??
-                Environment.GetEnvironmentVariable("RedisServer", EnvironmentVariableTarget.Process) ??
-                "127.0.0.1:6379";
+                          Environment.GetEnvironmentVariable("RedisServer", EnvironmentVariableTarget.User) ??
+                          Environment.GetEnvironmentVariable("RedisServer", EnvironmentVariableTarget.Process) ??
+                          "127.0.0.1:6379";
 
-            dbConnectionString = Environment.GetEnvironmentVariable("CFLOOKUP_SQL", EnvironmentVariableTarget.Machine) ??
+            dbConnectionString =
+                Environment.GetEnvironmentVariable("CFLOOKUP_SQL", EnvironmentVariableTarget.Machine) ??
                 Environment.GetEnvironmentVariable("CFLOOKUP_SQL", EnvironmentVariableTarget.User) ??
                 Environment.GetEnvironmentVariable("CFLOOKUP_SQL", EnvironmentVariableTarget.Process) ??
                 string.Empty;
 
-            hangfireUser = Environment.GetEnvironmentVariable("CFLOOKUP_HangfireUser", EnvironmentVariableTarget.Machine) ??
+            hangfireUser =
+                Environment.GetEnvironmentVariable("CFLOOKUP_HangfireUser", EnvironmentVariableTarget.Machine) ??
                 Environment.GetEnvironmentVariable("CFLOOKUP_HangfireUser", EnvironmentVariableTarget.User) ??
                 Environment.GetEnvironmentVariable("CFLOOKUP_HangfireUser", EnvironmentVariableTarget.Process) ??
                 string.Empty;
 
-            hangfirePassword = Environment.GetEnvironmentVariable("CFLOOKUP_HangfirePassword", EnvironmentVariableTarget.Machine) ??
+            hangfirePassword =
+                Environment.GetEnvironmentVariable("CFLOOKUP_HangfirePassword", EnvironmentVariableTarget.Machine) ??
                 Environment.GetEnvironmentVariable("CFLOOKUP_HangfirePassword", EnvironmentVariableTarget.User) ??
                 Environment.GetEnvironmentVariable("CFLOOKUP_HangfirePassword", EnvironmentVariableTarget.Process) ??
                 string.Empty;
-            
+
             pgsqlConnString = Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL", EnvironmentVariableTarget.Machine) ??
-                Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL", EnvironmentVariableTarget.User) ??
-                Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL", EnvironmentVariableTarget.Process) ??
-                string.Empty;
+                              Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL", EnvironmentVariableTarget.User) ??
+                              Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL", EnvironmentVariableTarget.Process) ??
+                              string.Empty;
         }
         else
         {
@@ -103,12 +109,12 @@ public class Program
         var redis = ConnectionMultiplexer.Connect(redisServer);
 
         builder.Services.AddSingleton(redis);
-        
+
         builder.Services.AddDataProtection()
             .PersistKeysToStackExchangeRedis(redis, "CFLookup-DataProtection-Keys");
 
         builder.Services.AddScoped(x => new SqlConnection(dbConnectionString));
-        
+
         builder.Services.AddScoped(x => new NpgsqlConnection(pgsqlConnString));
 
         builder.Services.AddScoped<MSSQLDB>();
@@ -130,11 +136,12 @@ public class Program
         {
         });
 #endif
-        builder.Services.AddScoped(options => new CurseForge.APIClient.ApiClient(cfApiKey, 201, "whatcfprojectisthat@nolifeking85.tv")
-        {
-            RequestDelay = TimeSpan.FromSeconds(5),
-            RequestTimeout = TimeSpan.FromMinutes(10)
-        });
+        builder.Services.AddScoped(options =>
+            new CurseForge.APIClient.ApiClient(cfApiKey, 201, "whatcfprojectisthat@nolifeking85.tv")
+            {
+                RequestDelay = TimeSpan.FromSeconds(5),
+                RequestTimeout = TimeSpan.FromMinutes(10)
+            });
 
         var app = builder.Build();
 
