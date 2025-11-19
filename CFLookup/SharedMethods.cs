@@ -6,8 +6,6 @@ using CurseForge.APIClient.Models.Mods;
 using Hangfire;
 using StackExchange.Redis;
 using System.Collections.Concurrent;
-using System.Collections.Frozen;
-using System.Data;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
