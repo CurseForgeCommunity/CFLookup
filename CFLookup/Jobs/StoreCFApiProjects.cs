@@ -268,7 +268,7 @@ namespace CFLookup.Jobs
                 }
                 finally
                 {
-                    BackgroundJob.Schedule(() => StoreCFApiFiles.RunAsync(null, JobCancellationToken.Null), TimeSpan.FromSeconds(10));
+                    BackgroundJob.Schedule(() => StoreCFApiProjects.RunAsync(null, JobCancellationToken.Null), TimeSpan.FromMinutes(10));
                 }
             }
         }
