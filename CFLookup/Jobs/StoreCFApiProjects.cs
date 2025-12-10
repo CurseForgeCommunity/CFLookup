@@ -51,7 +51,7 @@ namespace CFLookup.Jobs
                         
                         token.ThrowIfCancellationRequested();
 
-                        if (modList.Error != null && modList.Error.ErrorCode != 404)
+                        if (modList.Error != null && modList.Error.ErrorCode != 404 && !string.IsNullOrWhiteSpace(modList.Error.ErrorMessage))
                         {
                             // No-op for now, maybe Discord logs later
                             await SendDiscordErrorNotification(scope, $"The CF API threw an error at me: **{modList.Error.ErrorCode}**: {modList.Error.ErrorMessage}");
