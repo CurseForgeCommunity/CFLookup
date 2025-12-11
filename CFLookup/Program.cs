@@ -1,4 +1,5 @@
 using CFLookup;
+using InfluxDB.Client;
 using Microsoft.AspNetCore.DataProtection;
 #if !DEBUG
 using CFLookup.Jobs;
@@ -60,6 +61,8 @@ public class Program
         var hangfirePassword = string.Empty;
 
         var pgsqlConnString = string.Empty;
+        var influxDBConnString = string.Empty;
+        var influxToken = string.Empty;
 
         if (OperatingSystem.IsWindows())
         {
@@ -95,6 +98,16 @@ public class Program
                               Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL", EnvironmentVariableTarget.User) ??
                               Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL", EnvironmentVariableTarget.Process) ??
                               string.Empty;
+            
+            influxDBConnString = Environment.GetEnvironmentVariable("CFLOOKUP_INFLUXDB", EnvironmentVariableTarget.Machine) ??
+                                 Environment.GetEnvironmentVariable("CFLOOKUP_INFLUXDB", EnvironmentVariableTarget.User) ??
+                                 Environment.GetEnvironmentVariable("CFLOOKUP_INFLUXDB", EnvironmentVariableTarget.Process) ??
+                                 string.Empty;
+            
+            influxToken = Environment.GetEnvironmentVariable("CFLOOKUP_INFLUXDB_TOKEN", EnvironmentVariableTarget.Machine) ??
+                            Environment.GetEnvironmentVariable("CFLOOKUP_INFLUXDB_TOKEN", EnvironmentVariableTarget.User) ??
+                            Environment.GetEnvironmentVariable("CFLOOKUP_INFLUXDB_TOKEN", EnvironmentVariableTarget.Process) ??
+                            string.Empty;
         }
         else
         {
@@ -104,6 +117,8 @@ public class Program
             hangfireUser = Environment.GetEnvironmentVariable("CFLOOKUP_HangfireUser") ?? string.Empty;
             hangfirePassword = Environment.GetEnvironmentVariable("CFLOOKUP_HangfirePassword") ?? string.Empty;
             pgsqlConnString = Environment.GetEnvironmentVariable("CFLOOKUP_PGSQL") ?? string.Empty;
+            influxDBConnString = Environment.GetEnvironmentVariable("CFLOOKUP_INFLUXDB") ?? string.Empty;
+            influxToken = Environment.GetEnvironmentVariable("CFLOOKUP_INFLUXDB_TOKEN") ?? string.Empty;
         }
 
         var redis = ConnectionMultiplexer.Connect(redisServer);
@@ -112,6 +127,9 @@ public class Program
 
         builder.Services.AddDataProtection()
             .PersistKeysToStackExchangeRedis(redis, "CFLookup-DataProtection-Keys");
+        
+        builder.Services.AddScoped(x => new InfluxDBClient(influxDBConnString, influxToken));
+        builder.Services.AddScoped<InfluxDBWriter>();
 
         builder.Services.AddScoped(x => new SqlConnection(dbConnectionString));
 

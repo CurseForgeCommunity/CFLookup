@@ -1,4 +1,5 @@
-﻿using CurseForge.APIClient;
+﻿using CFLookup.Models;
+using CurseForge.APIClient;
 using CurseForge.APIClient.Models.Mods;
 using Hangfire;
 using Hangfire.Server;
@@ -29,6 +30,8 @@ namespace CFLookup.Jobs
                     token.ThrowIfCancellationRequested();
                     
                     var cfClient = scope.ServiceProvider.GetRequiredService<ApiClient>();
+                    
+                    var influxWriter = scope.ServiceProvider.GetRequiredService<InfluxDBWriter>();
 
                     var conn = scope.ServiceProvider.GetRequiredService<NpgsqlConnection>();
                     await conn.OpenAsync();
@@ -76,6 +79,10 @@ namespace CFLookup.Jobs
                         batch.Timeout = 600;
                         
                         token.ThrowIfCancellationRequested();
+
+                        var projectMetrics = new List<InfluxProjectMetric>();
+                        
+                        var currentTs = DateTime.UtcNow;
 
                         foreach (var mod in modList.Data)
                         {
@@ -237,6 +244,16 @@ namespace CFLookup.Jobs
                             });
 
                             batch.BatchCommands.Add(cmd);
+                            
+                            projectMetrics.Add(new InfluxProjectMetric
+                            {
+                                ProjectId = mod.Id,
+                                GameId = mod.GameId,
+                                DownloadCount = mod.DownloadCount,
+                                ThumbsUpCount = mod.ThumbsUpCount,
+                                GamePopularityRank = mod.GamePopularityRank,
+                                Timestamp = currentTs
+                            });
 
                             if (batch.BatchCommands.Count >= 1000)
                             {
@@ -244,6 +261,10 @@ namespace CFLookup.Jobs
                                 {
                                     // No-op for now, maybe Discord logs later
                                 }
+                                
+                                await influxWriter.WriteBatchAsync("CFLookup", "cf_project_data", projectMetrics);
+                                projectMetrics.Clear();
+                                currentTs = DateTime.UtcNow;
                                 token.ThrowIfCancellationRequested();
                             }
                         }
@@ -254,6 +275,10 @@ namespace CFLookup.Jobs
                             {
                                 // No-op for now, maybe Discord logs later
                             }
+                            
+                            await influxWriter.WriteBatchAsync("CFLookup", "cf_project_data", projectMetrics);
+                            projectMetrics.Clear();
+                            
                             token.ThrowIfCancellationRequested();
                         }
 
