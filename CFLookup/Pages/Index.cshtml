@@ -391,9 +391,24 @@
                                         }
                                         <td>@file.GameVersion</td>
                                         <td>
-                                            <div class="cf-install-button" title="Install with CurseForge">
-                                                <a href="curseforge://install?addonId=@Model.FoundMod.Id&fileId=@file.FileId" target="_blank">Install</a>
-                                            </div>
+                                            @{
+                                                var installable = true;
+                                                if (Model.FoundMod.GameId == 1)
+                                                {
+                                                    installable = !modFile.Modules.Any(m => m.Name.EndsWith(".toc"));
+                                                }
+                                            }
+                                            
+                                            @if(installable)
+                                            {
+                                                <div class="cf-install-button" title="Install with CurseForge">
+                                                    <a href="curseforge://install?addonId=@Model.FoundMod.Id&fileId=@file.FileId" target="_blank">Install</a>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <em>Not installable (problem with file)</em>
+                                            }
                                         </td>
                                     </tr>
                                 }
