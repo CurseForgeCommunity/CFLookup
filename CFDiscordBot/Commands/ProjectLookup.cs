@@ -1,6 +1,8 @@
-﻿using Discord;
+﻿using CurseForge.APIClient.Models.Mods;
+using Discord;
 using Discord.Interactions;
 using System.Text;
+using System.Text.Json;
 
 namespace CFDiscordBot.Commands
 {
@@ -9,7 +11,11 @@ namespace CFDiscordBot.Commands
         [SlashCommand("projectid", "Looks up a project by its ID")]
         public async Task ProjectIdAsync(
             [Summary("id", "The ID of the project to look up")]
-            int projectId
+            int projectId,
+            [Summary("GameVersion", "The version of the game you want to find info about for this project")]
+            string? gameVersion = null,
+            [Summary("Modloader", "The modloader you want to find info about for this project")]
+            ModLoaderType? modLoader = null
         )
         {
             CurseForge.APIClient.Models.Mods.Mod? mod = null;
@@ -32,6 +38,20 @@ namespace CFDiscordBot.Commands
                 return;
             }
 
+            List<CurseForge.APIClient.Models.Files.File> matchingFiles = new();
+
+            bool isFileSearch = false;
+
+            if (gameVersion is not null || modLoader is not null)
+            {
+                isFileSearch = true;
+                var fileReq = await apiClient.GetModFilesAsync(projectId, gameVersion, modLoader);
+                if (fileReq?.Data.Count > 0)
+                {
+                    matchingFiles.AddRange(fileReq.Data);
+                }
+            }
+
             var summaryText = new StringBuilder();
 
             summaryText.AppendLine(mod.Summary);
@@ -43,14 +63,10 @@ namespace CFDiscordBot.Commands
                 Fields = []
             };
 
-            if (Uri.TryCreate(mod.Logo?.ThumbnailUrl, UriKind.Absolute, out var logoUri))
-            {
-                projectEmbed.ThumbnailUrl = logoUri.AbsoluteUri;
-            }
-            else
-            {
-                projectEmbed.ThumbnailUrl = "https://www.curseforge.com/images/flame.svg";
-            }
+            projectEmbed.ThumbnailUrl = 
+                Uri.TryCreate(mod.Logo?.ThumbnailUrl, UriKind.Absolute, out var logoUri) ? 
+                    logoUri.AbsoluteUri : 
+                    "https://www.curseforge.com/images/flame.svg";
 
             var categories = string.Join(", ", mod.Categories.Select(c => $"[{c.Name}]({c.Url})"));
 
@@ -64,10 +80,77 @@ namespace CFDiscordBot.Commands
                 new() { Name = "Mod Distribution", Value = mod.AllowModDistribution ?? true ? "Allowed" : "Not allowed", IsInline = true },
                 new() { Name = "Is available", Value = mod.IsAvailable ? "Yes" : "No", IsInline = true }
             };
+            
+            if (matchingFiles.Count > 0)
+            {
+                List<string> fieldsToRemove = ["Created", "Modified", "Released", "Downloads", "Is available", "Status", "Mod Distribution"];
+                fields.RemoveAll(m => fieldsToRemove.Any(i => i == m.Name));
+                
+                var latestFile = matchingFiles.OrderByDescending(f => f.FileDate).First();
+                
+                fields.AddRange([
+                    new EmbedFieldBuilder { Name = "File Status", Value = latestFile.FileStatus.ToString(), IsInline = true },
+                    new EmbedFieldBuilder { Name = "File Uploaded", Value = $"<t:{latestFile.FileDate.ToUnixTimeSeconds()}:F>", IsInline = true },
+                    new EmbedFieldBuilder { Name = "File Downloads", Value = latestFile.DownloadCount.ToString("n0"), IsInline = true },
+                    new EmbedFieldBuilder { Name = "Mod Distribution", Value = mod.AllowModDistribution ?? true ? "Allowed" : "Not allowed", IsInline = true },
+                    new EmbedFieldBuilder { Name = "File is available", Value = latestFile.IsAvailable ? "Yes" : "No", IsInline = true }
+                ]);
+
+                if (mod.GameId == 432)
+                {
+                    var sides = latestFile.SortableGameVersions
+                        .Where(i => i.GameVersionTypeId is 75208)
+                        .Select(i => i.GameVersionName)
+                        .ToList();
+
+                    if (sides.Count > 0)
+                    {
+                        fields.Add(new EmbedFieldBuilder {  Name = "Environments", Value = string.Join(", ", sides), IsInline = false });
+                    }
+                    
+                    var modLoaders = latestFile.SortableGameVersions
+                        .Where(i => i.GameVersionTypeId is 68441)
+                        .Select(i => i.GameVersionName)
+                        .ToList();
+                    
+                    if (modLoaders.Count > 0)
+                    {
+                        fields.Add(new EmbedFieldBuilder {  Name = "Modloaders", Value = string.Join(", ", modLoaders), IsInline = false });
+                    }
+                }
+                
+                var gameVersions = latestFile.SortableGameVersions
+                    .Where(v => !string.IsNullOrWhiteSpace(v.GameVersion))
+                    .OrderByDescending(v => v.GameVersionPadded)
+                    .Select(i => i.GameVersionName)
+                    .ToList();
+                if (gameVersions.Count > 0)
+                {
+                    fields.Add(new EmbedFieldBuilder {  Name = "Game versions", Value = string.Join(", ", gameVersions), IsInline = false });
+                }
+            }
 
             if (!string.IsNullOrWhiteSpace(categories))
             {
                 fields.Add(new EmbedFieldBuilder { Name = "Categories", Value = categories, IsInline = false });
+            }
+
+            
+
+            if (isFileSearch && matchingFiles.Count == 0)
+            {
+                var sb = new StringBuilder();
+                if (gameVersion is not null)
+                {
+                    sb.AppendLine($"**Game version** - {gameVersion}");
+                }
+
+                if (modLoader is not null)
+                {
+                    sb.AppendLine($"**Modloader** - {modLoader}");
+                }
+                
+                fields.Add(new EmbedFieldBuilder { Name = "File matching search criteria not found", Value = sb.ToString(), IsInline = false });
             }
 
             projectEmbed.Fields.AddRange(fields);
@@ -131,7 +214,7 @@ namespace CFDiscordBot.Commands
             }
 
             // If the game is Minecraft Bedrock, we do an additional check if MCPEDL has the mod available through a slug lookup.
-            if (mod.GameId == 78022 && mod.AllowModDistribution.HasValue && mod.AllowModDistribution.Value)
+            if (mod is { GameId: 78022, AllowModDistribution: not null } && mod.AllowModDistribution.Value)
             {
                 var client = httpClientFactory.CreateClient();
                 client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "CFLookup Discord Bot/1.0; (+cflookup@itssimple.se)");
@@ -155,7 +238,7 @@ namespace CFDiscordBot.Commands
                 components: buttons.Build()
             );
         }
-
+        
         [SlashCommand("cflookup", "Looks up a project by its ID", ignoreGroupNames: true)]
         public async Task CFLookup([Summary("id", "The ID")] int projectId) => await ProjectIdAsync(projectId);
     }
