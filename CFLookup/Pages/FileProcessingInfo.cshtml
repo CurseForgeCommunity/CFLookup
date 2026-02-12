@@ -20,71 +20,42 @@
             try
             {
                 <tr>
-                    <td scope="row"><a href="https://www.curseforge.com/@row.Game.Slug" target="_blank">@row.Game.Name</a></td>
+                    <td scope="row"><a href="@row.GameUrl" target="_blank">@row.GameName</a></td>
                     <td>
-                        @if (row.Mod != null)
-                        {
-                            <a href="@row.Mod.Links.WebsiteUrl" target="_blank">@row.Mod.Name</a>
-                        }
-                        else
-                        {
-                            <text>ProjectId:</text>
-                            @row.FileProcessingInfo.ModId
-                        }
+                            <a href="@row.Links.WebsiteUrl" target="_blank">@row.Name</a>
                     </td>
                     <td>
-                        @if (row.Mod != null)
-                        {
-                            <a href="@row.Mod.Links.WebsiteUrl/files/@row.File.Id" target="_blank">@row.File.FileName</a>
+                        @{
+                            var file = @row.LatestFiles.OrderByDescending(f => f.FileDate).FirstOrDefault();
                         }
-                        else if (row.File != null)
+                        @if (file != null)
                         {
-                            @row.File.FileName
-                        }
-                        else
-                        {
-                            <text>FileId:</text>
-                            @row.FileProcessingInfo.FileId
+                            <a href="@row.Links.WebsiteUrl/files/@file.Id" target="_blank">@file.FileName</a>
                         }
                     </td>
-                    <td class="text-end" title="@row.LatestUpdatedUtc">@row.SinceLatestUpdate.ToHumanReadableFormat(true) ago</td>
+                    <td class="text-end" title="@row.LatestUpdateUtc">@row.SinceLatestUpdate.ToHumanReadableFormat(true) ago</td>
                 </tr>
             } catch (Exception ex)
             {
                 <tr>
-                    <td scope="row"><a href="https://www.curseforge.com/@row.Game.Slug" target="_blank">@row.Game.Name</a></td>
+                    <td scope="row"><a href="@row.GameUrl" target="_blank">@row.GameName</a></td>
                     <td>
-                        @if (row.Mod != null)
-                        {
-                            <a href="@row.Mod.Links.WebsiteUrl" target="_blank">@row.Mod.Name</a>
-                        }
-                        else
-                        {
-                            <text>ProjectId:</text>
-                            @row.FileProcessingInfo.ModId
-                        }
+                            <a href="@row.Links.WebsiteUrl" target="_blank">@row.Name</a>
                     </td>
                     <td>
-                        @if (row.Mod != null)
-                        {
-                            <a href="@row.Mod.Links.WebsiteUrl/files/@row.File.Id" target="_blank">@row.File.FileName</a>
+                        @{
+                            var file = @row.LatestFiles.OrderByDescending(f => f.FileDate).FirstOrDefault();
                         }
-                        else if (row.File != null)
+                        @if (file != null)
                         {
-                            @row.File.FileName
-                        }
-                        else
-                        {
-                            <text>FileId:</text>
-                            @row.FileProcessingInfo.FileId
+                            <a href="@row.Links.WebsiteUrl/files/@file.Id" target="_blank">@file.FileName</a>
                         }
                     </td>
-                    <td class="text-end" title="@row.LatestUpdatedUtc">@row.SinceLatestUpdate.ToHumanReadableFormat(true) ago</td>
+                    <td class="text-end" title="@row.LatestUpdateUtc">@row.SinceLatestUpdate.ToHumanReadableFormat(true) ago</td>
                 </tr>
                 <!-- Exception: @ex.ToString() -->
-                <!-- GameId: @row.FileProcessingInfo.GameId -->
-                <!-- ModId: @row.FileProcessingInfo.ModId -->
-                <!-- FileId: @row.FileProcessingInfo.FileId -->
+                <!-- GameId: @row.GameId -->
+                <!-- ModId: @row.ProjectId -->
             }
         }
     </tbody>
