@@ -366,6 +366,7 @@ WITH DailyLatest AS  (
 SELECT timestamp_utc, stats
 FROM DailyLatest
 WHERE RowNumber = 1
+ORDER BY timestamp_utc ASC
 ");
             var Stats = new Dictionary<DateTimeOffset, Dictionary<string, Dictionary<string, long>>>();
             while (stats.Read())
