@@ -77,7 +77,7 @@ namespace CFLookup.Jobs
                         }
                     }
 
-                    var viewData = new List<Series>();
+                    var viewData = new List<LineSeries>();
 
                     foreach (var series in testGraph)
                     {
@@ -89,8 +89,12 @@ namespace CFLookup.Jobs
                             Visible = false
                         });
                     }
+                    
+                    viewData.Last()!.Visible = true;
 
-                    ModLoaderStats[$"{loader}Data"] = viewData;
+                    var _series = new List<Series>(viewData);
+
+                    ModLoaderStats[$"{loader}Data"] = _series;
                 }
 
                 foreach (var loaderData in ModLoaderStats)
