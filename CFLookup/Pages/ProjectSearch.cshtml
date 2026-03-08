@@ -1,0 +1,257 @@
+@page "/project-search"
+@model CFLookup.Pages.ProjectSearchModel
+@using CFLookup.Models
+@{
+    ViewData["Title"] = "Project DB Search";
+}
+
+<h1 class="mb-4">Project database search</h1>
+
+<p class="text-muted">
+    Use this page to search the cached project data stored in PostgreSQL.
+</p>
+
+<form method="get" class="mb-4">
+    <div class="card bg-secondary border-0 mb-3">
+        <div class="card-body">
+            <div class="mb-3">
+                <label asp-for="Criteria.Query" class="form-label">Search text</label>
+                <input asp-for="Criteria.Query" class="form-control" placeholder="Search name, slug, or summary" />
+                <span class="form-text text-muted">
+                    Searches project <strong>name</strong>, <strong>slug</strong>, and <strong>summary</strong>.
+                </span>
+            </div>
+
+            <hr />
+
+            <h2 class="h5 mb-3">Advanced filters</h2>
+
+            @{
+                var filters = Model.Criteria.Filters ?? new List<ProjectSearchFilter>();
+                if (filters.Count == 0)
+                {
+                    filters.Add(new ProjectSearchFilter());
+                }
+            }
+
+            <div id="filter-rows">
+                @for (var i = 0; i < filters.Count; i++)
+                {
+                    <div class="row g-2 mb-2 filter-row">
+                        <div class="col-md-4">
+                            <select class="form-select" asp-for="Criteria.Filters[@i].Field">
+                                <option value="">-- Field --</option>
+                                <option value="GameId">Game id</option>
+                                <option value="Status">Status (enum value)</option>
+                                <option value="DownloadCount">Download count</option>
+                                <option value="ThumbsUpCount">Thumbs up</option>
+                                <option value="Rating">Rating</option>
+                                <option value="GamePopularityRank">Game popularity rank</option>
+                                <option value="ClassId">Class id</option>
+                                <option value="PrimaryCategoryId">Primary category id</option>
+                                <option value="IsFeatured">Is featured</option>
+                                <option value="IsAvailable">Is available</option>
+                                <option value="AllowModDistribution">Allow mod distribution</option>
+                                <option value="DateCreated">Date created</option>
+                                <option value="DateModified">Date modified</option>
+                                <option value="DateReleased">Date released</option>
+                                <option value="LatestUpdate">Latest update</option>
+                                <option value="Name">Name</option>
+                                <option value="Slug">Slug</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" asp-for="Criteria.Filters[@i].Operator">
+                                <option value="">-- Operator --</option>
+                                <option value="eq">Equals</option>
+                                <option value="neq">Not equal</option>
+                                <option value="gte">&gt;=</option>
+                                <option value="lte">&lt;=</option>
+                                <option value="gt">&gt;</option>
+                                <option value="lt">&lt;</option>
+                                <option value="contains">Contains</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input class="form-control" name="Criteria.Filters[@i].Value" value="@filters[i].Value" />
+                        </div>
+                        <div class="col-md-1 d-flex align-items-center">
+                            <button type="button" class="btn btn-outline-danger btn-sm remove-filter" title="Remove filter">&times;</button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="mt-2">
+                <button type="button" id="add-filter-btn" class="btn btn-outline-light btn-sm">
+                    Add filter
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <button type="submit" class="btn btn-primary">
+            Search
+        </button>
+
+        <div>
+            @if (Model.ViewModel.HasPreviousPage)
+            {
+                <button type="submit"
+                        name="Criteria.Page"
+                        value="@(Model.Criteria.Page - 1)"
+                        class="btn btn-outline-light me-2">
+                    &laquo; Previous
+                </button>
+            }
+            @if (Model.ViewModel.HasNextPage)
+            {
+                <button type="submit"
+                        name="Criteria.Page"
+                        value="@(Model.Criteria.Page + 1)"
+                        class="btn btn-outline-light">
+                    Next &raquo;
+                </button>
+            }
+        </div>
+    </div>
+</form>
+
+@if (Model.ViewModel.Results != null && Model.ViewModel.Results.Count > 0)
+{
+    <h2 class="h5 mt-4">
+        Results
+        <span class="text-muted">
+            (@Model.ViewModel.Results.Count@(Model.ViewModel.HasNextPage ? "+" : ""))
+        </span>
+    </h2>
+
+    <div class="table-responsive mt-2">
+        <table class="table table-dark table-striped table-sm align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">Project ID</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Slug</th>
+                    <th scope="col">Game ID</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Downloads</th>
+                    <th scope="col">Featured</th>
+                    <th scope="col">Available</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.ViewModel.Results)
+                {
+                    <tr>
+                        <td>
+                            <a asp-page="/Index"
+                               asp-route-projectId="@row.ProjectId"
+                               >
+                                @row.ProjectId
+                            </a>
+                        </td>
+                        <td>@row.Name</td>
+                        <td>@row.Slug</td>
+                        <td>@row.GameId</td>
+                        <td>@row.Status</td>
+                        <td>@row.DownloadCount</td>
+                        <td>@(row.IsFeatured ? "Yes" : "No")</td>
+                        <td>@(row.IsAvailable ? "Yes" : "No")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="mt-4 text-muted">
+        No results yet. Enter a search query and optional filters, then run a search.
+    </p>
+}
+
+<template id="filter-row-template">
+    <div class="row g-2 mb-2 filter-row">
+        <div class="col-md-4">
+            <select class="form-select" name="Criteria.Filters[__index__].Field">
+                <option value="">-- Field --</option>
+                <option value="GameId">Game id</option>
+                <option value="Status">Status (enum value)</option>
+                <option value="DownloadCount">Download count</option>
+                <option value="ThumbsUpCount">Thumbs up</option>
+                <option value="Rating">Rating</option>
+                <option value="GamePopularityRank">Game popularity rank</option>
+                <option value="ClassId">Class id</option>
+                <option value="PrimaryCategoryId">Primary category id</option>
+                <option value="IsFeatured">Is featured</option>
+                <option value="IsAvailable">Is available</option>
+                <option value="AllowModDistribution">Allow mod distribution</option>
+                <option value="DateCreated">Date created</option>
+                <option value="DateModified">Date modified</option>
+                <option value="DateReleased">Date released</option>
+                <option value="LatestUpdate">Latest update</option>
+                <option value="Name">Name</option>
+                <option value="Slug">Slug</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" name="Criteria.Filters[__index__].Operator">
+                <option value="">-- Operator --</option>
+                <option value="eq">Equals</option>
+                <option value="neq">Not equal</option>
+                <option value="gte">&gt;=</option>
+                <option value="lte">&lt;=</option>
+                <option value="gt">&gt;</option>
+                <option value="lt">&lt;</option>
+                <option value="contains">Contains</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <input class="form-control" name="Criteria.Filters[__index__].Value" />
+        </div>
+        <div class="col-md-1 d-flex align-items-center">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-filter" title="Remove filter">&times;</button>
+        </div>
+    </div>
+</template>
+
+@section Scripts {
+    <script>
+        (function () {
+            const container = document.getElementById('filter-rows');
+            const template = document.getElementById('filter-row-template');
+            const addButton = document.getElementById('add-filter-btn');
+
+            if (!container || !template || !addButton) {
+                return;
+            }
+
+            function getNextIndex() {
+                const rows = container.querySelectorAll('.filter-row');
+                return rows.length;
+            }
+
+            addButton.addEventListener('click', function () {
+                const index = getNextIndex();
+                const html = template.innerHTML.replace(/__index__/g, index);
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = html;
+                const row = wrapper.firstElementChild;
+                container.appendChild(row);
+            });
+
+            container.addEventListener('click', function (e) {
+                const target = e.target;
+                if (target && target.classList.contains('remove-filter')) {
+                    const row = target.closest('.filter-row');
+                    if (row) {
+                        row.remove();
+                    }
+                }
+            });
+        })();
+    </script>
+}
+
