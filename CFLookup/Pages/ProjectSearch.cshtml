@@ -41,7 +41,11 @@
                         <div class="col-md-4">
                             <select class="form-select" asp-for="Criteria.Filters[@i].Field">
                                 <option value="">-- Field --</option>
+                                <option value="Name">Name</option>
+                                <option value="Slug">Slug</option>
+                                <option value="Summary">Summary</option>
                                 <option value="GameId">Game id</option>
+                                <option value="GameName">Game name</option>
                                 <option value="Status">Status (enum value)</option>
                                 <option value="DownloadCount">Download count</option>
                                 <option value="ThumbsUpCount">Thumbs up</option>
@@ -56,8 +60,6 @@
                                 <option value="DateModified">Date modified</option>
                                 <option value="DateReleased">Date released</option>
                                 <option value="LatestUpdate">Latest update</option>
-                                <option value="Name">Name</option>
-                                <option value="Slug">Slug</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -94,27 +96,6 @@
         <button type="submit" class="btn btn-primary">
             Search
         </button>
-
-        <div>
-            @if (Model.ViewModel.HasPreviousPage)
-            {
-                <button type="submit"
-                        name="Criteria.Page"
-                        value="@(Model.Criteria.Page - 1)"
-                        class="btn btn-outline-light me-2">
-                    &laquo; Previous
-                </button>
-            }
-            @if (Model.ViewModel.HasNextPage)
-            {
-                <button type="submit"
-                        name="Criteria.Page"
-                        value="@(Model.Criteria.Page + 1)"
-                        class="btn btn-outline-light">
-                    Next &raquo;
-                </button>
-            }
-        </div>
     </div>
 </form>
 
@@ -123,7 +104,7 @@
     <h2 class="h5 mt-4">
         Results
         <span class="text-muted">
-            (@Model.ViewModel.Results.Count@(Model.ViewModel.HasNextPage ? "+" : ""))
+            (@Model.ViewModel.Results.Count)
         </span>
     </h2>
 
@@ -134,9 +115,9 @@
                     <th scope="col">Project ID</th>
                     <th scope="col">Name</th>
                     <th scope="col">Slug</th>
-                    <th scope="col">Game ID</th>
+                    <th scope="col">Game</th>
                     <th scope="col">Status</th>
-                    <th scope="col">Downloads</th>
+                    <th scope="col" class="text-end">Downloads</th>
                     <th scope="col">Featured</th>
                     <th scope="col">Available</th>
                 </tr>
@@ -154,9 +135,9 @@
                         </td>
                         <td>@row.Name</td>
                         <td>@row.Slug</td>
-                        <td>@row.GameId</td>
+                        <td>@(!string.IsNullOrWhiteSpace(row.GameName) ? row.GameName : "Unknown game") (@row.GameId)</td>
                         <td>@row.Status</td>
-                        <td>@row.DownloadCount</td>
+                        <td class="text-end">@row.DownloadCount.ToString("n0")</td>
                         <td>@(row.IsFeatured ? "Yes" : "No")</td>
                         <td>@(row.IsAvailable ? "Yes" : "No")</td>
                     </tr>

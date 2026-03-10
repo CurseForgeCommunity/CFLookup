@@ -7,10 +7,6 @@ namespace CFLookup.Models
         public string? Query { get; set; }
 
         public List<ProjectSearchFilter> Filters { get; set; } = new();
-
-        public int Page { get; set; } = 1;
-
-        public int PageSize { get; set; } = 50;
     }
 
     public class ProjectSearchFilter
@@ -59,6 +55,7 @@ namespace CFLookup.Models
         public DateTimeOffset DateReleased { get; set; }
 
         public DateTimeOffset LatestUpdate { get; set; }
+        public string GameName { get; set; }
     }
 
     public class ProjectSearchPageViewModel
@@ -66,10 +63,6 @@ namespace CFLookup.Models
         public ProjectSearchCriteria Criteria { get; set; } = new();
 
         public List<ProjectSearchResult> Results { get; set; } = new();
-
-        public bool HasNextPage { get; set; }
-
-        public bool HasPreviousPage => Criteria.Page > 1;
     }
 }
 

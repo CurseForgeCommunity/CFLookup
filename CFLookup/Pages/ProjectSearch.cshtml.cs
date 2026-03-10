@@ -34,29 +34,24 @@ namespace CFLookup.Pages
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (Criteria.Page <= 0)
-            {
-                Criteria.Page = 1;
-            }
-
             await ExecuteSearchAsync();
             return Page();
         }
 
         private async Task ExecuteSearchAsync()
         {
-            var pageSize = Criteria.PageSize <= 0 ? 50 : Math.Min(Criteria.PageSize, 200);
-            var page = Criteria.Page <= 0 ? 1 : Criteria.Page;
-
-            var offset = (page - 1) * pageSize;
-            var limit = pageSize + 1;
-
             var sqlBuilder = new StringBuilder();
-            sqlBuilder.Append("SELECT projectid, gameid, name, slug, summary, status, downloadcount, isfeatured, primarycategoryid, classid, allowmoddistribution, gamepopularityrank, isavailable, thumbsupcount, rating, datecreated, datemodified, datereleased, latestupdate FROM project_data");
+            sqlBuilder.Append(
+                """
+                    SELECT pd.projectid, pd.gameid, pd.name, pd.slug, pd.summary, pd.status, pd.downloadcount, pd.isfeatured,
+                         pd.primarycategoryid, pd.classid, pd.allowmoddistribution, pd.gamepopularityrank,
+                         pd.isavailable, pd.thumbsupcount, pd.datecreated, pd.datemodified, pd.datereleased, pd.latestupdate,
+                         gd.name as gamename
+                    FROM project_data pd
+                    LEFT JOIN game_data gd ON pd.gameid = gd.gameid
+                """);
 
-            var conditions = new List<string>
-            {
-            };
+            var conditions = new List<string>();
 
             await using var cmd = _conn.CreateCommand();
             cmd.CommandType = CommandType.Text;
@@ -64,11 +59,11 @@ namespace CFLookup.Pages
             if (!string.IsNullOrWhiteSpace(Criteria.Query))
             {
                 var paramName = "q";
-                conditions.Add("(name ILIKE @" + paramName + " OR slug ILIKE @" + paramName + " OR summary ILIKE @" + paramName + ")");
+                conditions.Add("(pd.name ILIKE @" + paramName + " OR pd.slug ILIKE @" + paramName + " OR pd.summary ILIKE @" + paramName + ")");
                 cmd.Parameters.AddWithValue(paramName, $"%{Criteria.Query.Trim()}%");
             }
 
-            if (Criteria.Filters != null && Criteria.Filters.Count > 0)
+            if (Criteria.Filters is { Count: > 0 })
             {
                 var paramIndex = 0;
                 foreach (var filter in Criteria.Filters)
@@ -101,12 +96,9 @@ namespace CFLookup.Pages
                 sqlBuilder.Append(string.Join(" AND ", conditions));
             }
 
-            sqlBuilder.Append(" ORDER BY latestupdate DESC, downloadcount DESC");
-            sqlBuilder.Append(" LIMIT @limit OFFSET @offset");
+            sqlBuilder.Append(" ORDER BY pd.name DESC");
 
             cmd.CommandText = sqlBuilder.ToString();
-            cmd.Parameters.AddWithValue("limit", limit);
-            cmd.Parameters.AddWithValue("offset", offset);
 
             if (_conn.State != ConnectionState.Open)
             {
@@ -123,20 +115,14 @@ namespace CFLookup.Pages
             try
             {
                 await using var reader = await cmd.ExecuteReaderAsync();
-                var rowCount = 0;
 
                 while (await reader.ReadAsync())
                 {
-                    if (rowCount >= pageSize)
-                    {
-                        ViewModel.HasNextPage = true;
-                        break;
-                    }
-
                     var result = new ProjectSearchResult
                     {
                         ProjectId = reader.GetInt64(reader.GetOrdinal("projectid")),
                         GameId = reader.GetInt32(reader.GetOrdinal("gameid")),
+                        GameName = reader.GetString(reader.GetOrdinal("gamename")),
                         Name = reader.GetString(reader.GetOrdinal("name")),
                         Slug = reader.GetString(reader.GetOrdinal("slug")),
                         Summary = reader.GetString(reader.GetOrdinal("summary")),
@@ -156,7 +142,6 @@ namespace CFLookup.Pages
                     };
 
                     results.Add(result);
-                    rowCount++;
                 }
             }
             catch (Exception ex)
@@ -175,71 +160,75 @@ namespace CFLookup.Pages
             switch (field)
             {
                 case "GameId":
-                    columnName = "gameid";
+                    columnName = "pd.gameid";
                     valueType = FilterValueType.Numeric;
                     return true;
                 case "Status":
-                    columnName = "status";
+                    columnName = "pd.status";
                     valueType = FilterValueType.Numeric;
                     return true;
                 case "DownloadCount":
-                    columnName = "downloadcount";
+                    columnName = "pd.downloadcount";
                     valueType = FilterValueType.Numeric;
                     return true;
                 case "IsFeatured":
-                    columnName = "isfeatured";
+                    columnName = "pd.isfeatured";
                     valueType = FilterValueType.Boolean;
                     return true;
                 case "PrimaryCategoryId":
-                    columnName = "primarycategoryid";
+                    columnName = "pd.primarycategoryid";
                     valueType = FilterValueType.Numeric;
                     return true;
                 case "ClassId":
-                    columnName = "classid";
+                    columnName = "pd.classid";
                     valueType = FilterValueType.Numeric;
                     return true;
                 case "AllowModDistribution":
-                    columnName = "allowmoddistribution";
+                    columnName = "pd.allowmoddistribution";
                     valueType = FilterValueType.Boolean;
                     return true;
                 case "GamePopularityRank":
-                    columnName = "gamepopularityrank";
+                    columnName = "pd.gamepopularityrank";
                     valueType = FilterValueType.Numeric;
                     return true;
                 case "IsAvailable":
-                    columnName = "isavailable";
+                    columnName = "pd.isavailable";
                     valueType = FilterValueType.Boolean;
                     return true;
                 case "ThumbsUpCount":
-                    columnName = "thumbsupcount";
-                    valueType = FilterValueType.Numeric;
-                    return true;
-                case "Rating":
-                    columnName = "rating";
+                    columnName = "pd.thumbsupcount";
                     valueType = FilterValueType.Numeric;
                     return true;
                 case "DateCreated":
-                    columnName = "datecreated";
+                    columnName = "pd.datecreated";
                     valueType = FilterValueType.DateTime;
                     return true;
                 case "DateModified":
-                    columnName = "datemodified";
+                    columnName = "pd.datemodified";
                     valueType = FilterValueType.DateTime;
                     return true;
                 case "DateReleased":
-                    columnName = "datereleased";
+                    columnName = "pd.datereleased";
                     valueType = FilterValueType.DateTime;
                     return true;
                 case "LatestUpdate":
-                    columnName = "latestupdate";
+                    columnName = "pd.latestupdate";
                     valueType = FilterValueType.DateTime;
                     return true;
                 case "Name":
-                    columnName = "name";
+                    columnName = "pd.name";
                     valueType = FilterValueType.String;
                     return true;
                 case "Slug":
-                    columnName = "slug";
+                    columnName = "pd.slug";
+                    valueType = FilterValueType.String;
+                    return true;
+                case "Summary":
+                    columnName = "pd.summary";
+                    valueType = FilterValueType.String;
+                    return true;
+                case "GameName":
+                    columnName = "gd.name";
                     valueType = FilterValueType.String;
                     return true;
                 default:
@@ -318,7 +307,7 @@ namespace CFLookup.Pages
 
         private static object ParseNumeric(string value, string columnName)
         {
-            if (columnName is "status" or "primarycategoryid" or "classid")
+            if (columnName is "pd.status" or "pd.primarycategoryid" or "pd.classid")
             {
                 return int.Parse(value, CultureInfo.InvariantCulture);
             }
