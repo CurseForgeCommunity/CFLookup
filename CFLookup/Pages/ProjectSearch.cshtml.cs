@@ -132,7 +132,7 @@ namespace CFLookup.Pages
                         IsFeatured = reader.GetBoolean(reader.GetOrdinal("isfeatured")),
                         PrimaryCategoryId = reader.GetInt32(reader.GetOrdinal("primarycategoryid")),
                         ClassId = reader.GetInt32(reader.GetOrdinal("classid")),
-                        AllowModDistribution = reader.GetBoolean(reader.GetOrdinal("allowmoddistribution")),
+                        AllowModDistribution = !reader.IsDBNull("allowmoddistribution") && reader.GetBoolean(reader.GetOrdinal("allowmoddistribution")),
                         GamePopularityRank = reader.GetInt64(reader.GetOrdinal("gamepopularityrank")),
                         IsAvailable = reader.GetBoolean(reader.GetOrdinal("isavailable")),
                         ThumbsUpCount = reader.GetInt64(reader.GetOrdinal("thumbsupcount")),
