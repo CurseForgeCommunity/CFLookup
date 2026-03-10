@@ -97,6 +97,7 @@ namespace CFLookup.Pages
             }
 
             sqlBuilder.Append(" ORDER BY pd.name DESC");
+            sqlBuilder.Append(" LIMIT 100");
 
             cmd.CommandText = sqlBuilder.ToString();
 
