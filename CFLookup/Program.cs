@@ -125,8 +125,8 @@ public class Program
 
         builder.Services.AddSingleton(redis);
 
-        builder.Services.AddDataProtection()
-            .PersistKeysToStackExchangeRedis(redis, "CFLookup-DataProtection-Keys");
+        /*builder.Services.AddDataProtection()
+            .PersistKeysToStackExchangeRedis(redis, "CFLookup-DataProtection-Keys");*/
         
         builder.Services.AddScoped(x => new InfluxDBClient(influxDBConnString, influxToken));
         builder.Services.AddScoped<InfluxDBWriter>();
