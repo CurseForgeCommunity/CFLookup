@@ -56,8 +56,15 @@ namespace CFLookup.Jobs
 
                         if (modList.Error != null && modList.Error.ErrorCode != 404 && !string.IsNullOrWhiteSpace(modList.Error.ErrorMessage))
                         {
-                            // No-op for now, maybe Discord logs later
-                            await SendDiscordErrorNotification(scope, $"The CF API threw an error at me: **{modList.Error.ErrorCode}**: {modList.Error.ErrorMessage}");
+                            switch (modList.Error.ErrorCode)
+                            {
+                                case 502:
+                                case 504:
+                                    continue;
+                                default:
+                                    await SendDiscordErrorNotification(scope, $"The CF API threw an error at me: **{modList.Error.ErrorCode}**: {modList.Error.ErrorMessage}");
+                                    break;
+                            }
                         }
 
                         if (modList.Data.Count == 0)
