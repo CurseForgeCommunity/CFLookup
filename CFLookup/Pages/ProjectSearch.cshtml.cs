@@ -2,17 +2,25 @@
 using System.Data;
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using CFLookup.Models;
+using CurseForge.APIClient;
 using CurseForge.APIClient.Models.Mods;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Npgsql;
+using StackExchange.Redis;
 
 namespace CFLookup.Pages
 {
     public class ProjectSearchModel : PageModel
     {
+        private const int PageSize = 100;
+
         private readonly NpgsqlConnection _conn;
+        private readonly IDatabaseAsync _redis;
+        private readonly ApiClient _cfApiClient;
         private readonly ILogger<ProjectSearchModel> _logger;
 
         [BindProperty(SupportsGet = true)]
@@ -20,9 +28,13 @@ namespace CFLookup.Pages
 
         public ProjectSearchPageViewModel ViewModel { get; set; } = new();
 
-        public ProjectSearchModel(NpgsqlConnection conn, ILogger<ProjectSearchModel> logger)
+        public string? SelectedGameName { get; set; }
+
+        public ProjectSearchModel(NpgsqlConnection conn, ConnectionMultiplexer connectionMultiplexer, ApiClient cfApiClient, ILogger<ProjectSearchModel> logger)
         {
             _conn = conn;
+            _redis = connectionMultiplexer.GetDatabase(5);
+            _cfApiClient = cfApiClient;
             _logger = logger;
         }
 
@@ -63,6 +75,12 @@ namespace CFLookup.Pages
                 cmd.Parameters.AddWithValue(paramName, $"%{Criteria.Query.Trim()}%");
             }
 
+            if (Criteria.GameId.HasValue)
+            {
+                conditions.Add("pd.gameid = @gameId");
+                cmd.Parameters.AddWithValue("gameId", Criteria.GameId.Value);
+            }
+
             if (Criteria.Filters is { Count: > 0 })
             {
                 var paramIndex = 0;
@@ -73,6 +91,16 @@ namespace CFLookup.Pages
                         string.IsNullOrWhiteSpace(filter.Operator) ||
                         string.IsNullOrWhiteSpace(filter.Value))
                     {
+                        continue;
+                    }
+
+                    if (filter.Field == "Author")
+                    {
+                        if (TryBuildAuthorCondition(filter, cmd, ref paramIndex, out var authorCondition))
+                        {
+                            conditions.Add(authorCondition);
+                        }
+
                         continue;
                     }
 
@@ -90,14 +118,31 @@ namespace CFLookup.Pages
                 }
             }
 
+            SearchCursor.TryDecode(Criteria.Cursor, out var cursor);
+            var isPrevious = cursor is { Direction: "prev" };
+
+            if (cursor != null)
+            {
+                conditions.Add(isPrevious
+                    ? "(pd.name, pd.projectid) > (@cursorName, @cursorId)"
+                    : "(pd.name, pd.projectid) < (@cursorName, @cursorId)");
+
+                cmd.Parameters.AddWithValue("cursorName", cursor.Name);
+                cmd.Parameters.AddWithValue("cursorId", cursor.ProjectId);
+            }
+
             if (conditions.Count > 0)
             {
                 sqlBuilder.Append(" WHERE ");
                 sqlBuilder.Append(string.Join(" AND ", conditions));
             }
 
-            sqlBuilder.Append(" ORDER BY pd.name DESC");
-            sqlBuilder.Append(" LIMIT 100");
+            // Keyset pagination needs a fully-ordered key - name alone isn't unique, so projectid
+            // (the primary key) breaks ties. "Previous" walks the same key ascending, then the
+            // fetched page is reversed below to restore normal descending display order.
+            var sortDirection = isPrevious ? "ASC" : "DESC";
+            sqlBuilder.Append($" ORDER BY pd.name {sortDirection}, pd.projectid {sortDirection}");
+            sqlBuilder.Append($" LIMIT {PageSize + 1}");
 
             cmd.CommandText = sqlBuilder.ToString();
 
@@ -119,11 +164,14 @@ namespace CFLookup.Pages
 
                 while (await reader.ReadAsync())
                 {
+                    var gameNameOrdinal = reader.GetOrdinal("gamename");
+                    var classIdOrdinal = reader.GetOrdinal("classid");
+
                     var result = new ProjectSearchResult
                     {
                         ProjectId = reader.GetInt64(reader.GetOrdinal("projectid")),
                         GameId = reader.GetInt32(reader.GetOrdinal("gameid")),
-                        GameName = reader.GetString(reader.GetOrdinal("gamename")),
+                        GameName = reader.IsDBNull(gameNameOrdinal) ? string.Empty : reader.GetString(gameNameOrdinal),
                         Name = reader.GetString(reader.GetOrdinal("name")),
                         Slug = reader.GetString(reader.GetOrdinal("slug")),
                         Summary = reader.GetString(reader.GetOrdinal("summary")),
@@ -131,7 +179,7 @@ namespace CFLookup.Pages
                         DownloadCount = reader.GetInt64(reader.GetOrdinal("downloadcount")),
                         IsFeatured = reader.GetBoolean(reader.GetOrdinal("isfeatured")),
                         PrimaryCategoryId = reader.GetInt32(reader.GetOrdinal("primarycategoryid")),
-                        ClassId = reader.GetInt32(reader.GetOrdinal("classid")),
+                        ClassId = reader.IsDBNull(classIdOrdinal) ? 0 : reader.GetInt32(classIdOrdinal),
                         AllowModDistribution = !reader.IsDBNull("allowmoddistribution") && reader.GetBoolean(reader.GetOrdinal("allowmoddistribution")),
                         GamePopularityRank = reader.GetInt64(reader.GetOrdinal("gamepopularityrank")),
                         IsAvailable = reader.GetBoolean(reader.GetOrdinal("isavailable")),
@@ -150,7 +198,47 @@ namespace CFLookup.Pages
                 _logger.LogError(ex, "Error executing project search query.");
             }
 
+            var hasMore = results.Count > PageSize;
+            if (hasMore)
+            {
+                results.RemoveAt(results.Count - 1);
+            }
+
+            if (isPrevious)
+            {
+                results.Reverse();
+            }
+
             ViewModel.Results = results;
+
+            if (results.Count > 0)
+            {
+                var first = results[0];
+                var last = results[^1];
+
+                ViewModel.PreviousCursor = new SearchCursor { Name = first.Name, ProjectId = first.ProjectId, Direction = "prev" }.Encode();
+                ViewModel.NextCursor = new SearchCursor { Name = last.Name, ProjectId = last.ProjectId, Direction = "next" }.Encode();
+
+                // Once you've stepped in a direction, a page in the opposite direction is guaranteed
+                // to exist (it's the one you came from) - only the direction you're heading needs
+                // the "is there actually another page" check via the 101st-row probe above.
+                ViewModel.HasPrevious = cursor == null ? false : (isPrevious ? hasMore : true);
+                ViewModel.HasNext = cursor == null ? hasMore : (isPrevious ? true : hasMore);
+            }
+            else if (cursor != null)
+            {
+                // Ran off the end of the result set in this direction - still offer a way back
+                // to where we came from, using the incoming cursor's own key.
+                ViewModel.HasPrevious = !isPrevious;
+                ViewModel.HasNext = isPrevious;
+                ViewModel.PreviousCursor = isPrevious ? null : new SearchCursor { Name = cursor.Name, ProjectId = cursor.ProjectId, Direction = "prev" }.Encode();
+                ViewModel.NextCursor = isPrevious ? new SearchCursor { Name = cursor.Name, ProjectId = cursor.ProjectId, Direction = "next" }.Encode() : null;
+            }
+
+            if (Criteria.GameId.HasValue)
+            {
+                SelectedGameName = await SharedMethods.GetGameNameForDisplay(_conn, _redis, _cfApiClient, Criteria.GameId.Value);
+            }
         }
 
         private static bool TryGetColumnInfo(string field, out string columnName, out FilterValueType valueType)
@@ -303,6 +391,50 @@ namespace CFLookup.Pages
 
             cmd.Parameters.AddWithValue(paramName, typedValue);
             condition = $"{columnName} {sqlOperator} @{paramName}";
+            return true;
+        }
+
+        private static bool TryBuildAuthorCondition(
+            ProjectSearchFilter filter,
+            NpgsqlCommand cmd,
+            ref int paramIndex,
+            out string condition)
+        {
+            condition = string.Empty;
+
+            var opToken = filter.Operator!.ToLowerInvariant();
+            var escaped = Regex.Escape(filter.Value!.Trim());
+
+            string pattern;
+            switch (opToken)
+            {
+                case "eq":
+                    pattern = $"^{escaped}$";
+                    break;
+                case "contains":
+                    pattern = escaped;
+                    break;
+                default:
+                    return false;
+            }
+
+            // like_regex's pattern has to be a literal inside the jsonpath expression itself -
+            // Postgres doesn't support passing it as a jsonpath $variable - so the untrusted value
+            // is regex-escaped above (closes the ReDoS/pattern-injection surface) and then
+            // JSON-string-escaped here (jsonpath strings follow JSON string syntax) before being
+            // spliced into the expression text. The whole expression is still one bound parameter,
+            // cast to jsonpath server-side - nothing is concatenated into the outer SQL text.
+            var literal = JsonSerializer.Serialize(pattern);
+            var paramName = $"p{paramIndex++}";
+
+            cmd.Parameters.AddWithValue(paramName, $"$[*].name like_regex {literal} flag \"i\"");
+
+            // jsonb_path_exists checks whether the path yields ANY item - and a like_regex
+            // predicate always yields exactly one boolean item, true or false, so it "exists"
+            // either way and matches every row. @@ (jsonb_path_match) is the right operator for
+            // a predicate expression like this one: it checks whether that boolean result is true.
+            condition = $"(pd.authors @@ @{paramName}::jsonpath)";
+
             return true;
         }
 

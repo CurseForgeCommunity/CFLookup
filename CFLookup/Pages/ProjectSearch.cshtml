@@ -3,6 +3,18 @@
 @using CFLookup.Models
 @{
     ViewData["Title"] = "Project DB Search";
+
+    var filters = Model.Criteria.Filters ?? new List<ProjectSearchFilter>();
+    if (filters.Count == 0)
+    {
+        filters.Add(new ProjectSearchFilter());
+    }
+
+    var hasActiveSearch = Model.Criteria.GameId.HasValue
+        || !string.IsNullOrWhiteSpace(Model.Criteria.Query)
+        || filters.Any(f => !string.IsNullOrWhiteSpace(f?.Field) && !string.IsNullOrWhiteSpace(f?.Value));
+
+    var scopedLabel = Model.SelectedGameName ?? (Model.Criteria.GameId.HasValue ? $"GameId: {Model.Criteria.GameId}" : string.Empty);
 }
 
 <h1 class="mb-4">Project database search</h1>
@@ -11,7 +23,27 @@
     Use this page to search the cached project data stored in PostgreSQL.
 </p>
 
-<form method="get" class="mb-4">
+<form method="get" id="project-search-form" class="mb-4">
+
+    <div class="scope-bar mb-3">
+        <label class="form-label" for="gameScopeInput">Game scope</label>
+        <p class="form-text text-muted mb-2">Search all games, or scope everything below to one.</p>
+
+        <div id="scope-bar-picker" class="scope-picker@(Model.Criteria.GameId.HasValue ? " d-none" : "")">
+            <input type="text" class="form-control" id="gameScopeInput" placeholder="Search games by name, or type a game ID..." autocomplete="off" />
+            <div id="gameScopeSuggestions" class="combobox-suggestions d-none"></div>
+        </div>
+
+        <div id="scope-bar-pill" class="scope-pill-row@(Model.Criteria.GameId.HasValue ? "" : " d-none")">
+            <span class="scope-pill">
+                Scoped to: <strong id="scope-pill-label">@scopedLabel</strong>
+                <button type="button" id="scope-clear-btn" class="btn-close btn-close-white" aria-label="Clear game scope"></button>
+            </span>
+        </div>
+
+        <input type="hidden" name="Criteria.GameId" id="gameScopeHidden" value="@Model.Criteria.GameId" />
+    </div>
+
     <div class="card bg-secondary border-0 mb-3">
         <div class="card-body">
             <div class="mb-3">
@@ -24,69 +56,69 @@
 
             <hr />
 
-            <h2 class="h5 mb-3">Advanced filters</h2>
-
-            @{
-                var filters = Model.Criteria.Filters ?? new List<ProjectSearchFilter>();
-                if (filters.Count == 0)
-                {
-                    filters.Add(new ProjectSearchFilter());
-                }
-            }
+            <h2 class="h5 mb-3">Filters</h2>
 
             <div id="filter-rows">
                 @for (var i = 0; i < filters.Count; i++)
                 {
-                    <div class="row g-2 mb-2 filter-row">
-                        <div class="col-md-4">
-                            <select class="form-select" asp-for="Criteria.Filters[@i].Field">
-                                <option value="">-- Field --</option>
-                                <option value="Name">Name</option>
-                                <option value="Slug">Slug</option>
-                                <option value="Summary">Summary</option>
-                                <option value="GameId">Game id</option>
-                                <option value="GameName">Game name</option>
-                                <option value="Status">Status (enum value)</option>
-                                <option value="DownloadCount">Download count</option>
-                                <option value="ThumbsUpCount">Thumbs up</option>
-                                <option value="Rating">Rating</option>
-                                <option value="GamePopularityRank">Game popularity rank</option>
-                                <option value="ClassId">Class id</option>
-                                <option value="PrimaryCategoryId">Primary category id</option>
-                                <option value="IsFeatured">Is featured</option>
-                                <option value="IsAvailable">Is available</option>
-                                <option value="AllowModDistribution">Allow mod distribution</option>
-                                <option value="DateCreated">Date created</option>
-                                <option value="DateModified">Date modified</option>
-                                <option value="DateReleased">Date released</option>
-                                <option value="LatestUpdate">Latest update</option>
-                            </select>
+                    <div class="filter-row" data-index="@i">
+                        <div class="filter-chip" role="button" tabindex="0">
+                            <i class="bi filter-type-icon"></i>
+                            <span class="filter-chip-summary">New filter</span>
+                            <button type="button" class="btn-close btn-close-white remove-filter" aria-label="Remove filter"></button>
                         </div>
-                        <div class="col-md-3">
-                            <select class="form-select" asp-for="Criteria.Filters[@i].Operator">
-                                <option value="">-- Operator --</option>
-                                <option value="eq">Equals</option>
-                                <option value="neq">Not equal</option>
-                                <option value="gte">&gt;=</option>
-                                <option value="lte">&lt;=</option>
-                                <option value="gt">&gt;</option>
-                                <option value="lt">&lt;</option>
-                                <option value="contains">Contains</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <input class="form-control" name="Criteria.Filters[@i].Value" value="@filters[i].Value" />
-                        </div>
-                        <div class="col-md-1 d-flex align-items-center">
-                            <button type="button" class="btn btn-outline-danger btn-sm remove-filter" title="Remove filter">&times;</button>
+                        <div class="filter-editor row g-2">
+                            <div class="col-md-4">
+                                <select class="form-select filter-field" asp-for="Criteria.Filters[@i].Field">
+                                    <option value="">-- Field --</option>
+                                    <option value="Name">Name</option>
+                                    <option value="Slug">Slug</option>
+                                    <option value="Summary">Summary</option>
+                                    <option value="Author">Author</option>
+                                    <option value="GameName">Game name</option>
+                                    <option value="Status">Status</option>
+                                    <option value="DownloadCount">Download count</option>
+                                    <option value="ThumbsUpCount">Thumbs up</option>
+                                    <option value="Rating">Rating</option>
+                                    <option value="GamePopularityRank">Game popularity rank</option>
+                                    <option value="ClassId">Class</option>
+                                    <option value="PrimaryCategoryId">Category</option>
+                                    <option value="IsFeatured">Is featured</option>
+                                    <option value="IsAvailable">Is available</option>
+                                    <option value="AllowModDistribution">Allow mod distribution</option>
+                                    <option value="DateCreated">Date created</option>
+                                    <option value="DateModified">Date modified</option>
+                                    <option value="DateReleased">Date released</option>
+                                    <option value="LatestUpdate">Latest update</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select filter-operator" asp-for="Criteria.Filters[@i].Operator">
+                                    <option value="">-- Operator --</option>
+                                    <option value="eq">Equals</option>
+                                    <option value="neq">Not equal</option>
+                                    <option value="gte">&gt;=</option>
+                                    <option value="lte">&lt;=</option>
+                                    <option value="gt">&gt;</option>
+                                    <option value="lt">&lt;</option>
+                                    <option value="contains">Contains</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 filter-value-container">
+                                <input class="form-control filter-value" name="Criteria.Filters[@i].Value" value="@filters[i].Value" />
+                            </div>
+                            <div class="col-md-1 d-flex align-items-center gap-1">
+                                <button type="button" class="btn btn-outline-light btn-sm filter-done-btn" title="Done"><i class="bi bi-check-lg"></i></button>
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-filter" title="Remove filter">&times;</button>
+                            </div>
                         </div>
                     </div>
                 }
             </div>
 
             <div class="mt-2">
-                <button type="button" id="add-filter-btn" class="btn btn-outline-light btn-sm">
-                    Add filter
+                <button type="button" id="add-filter-btn" class="btn btn-add-filter btn-sm">
+                    + Add filter
                 </button>
             </div>
         </div>
@@ -104,11 +136,11 @@
     <h2 class="h5 mt-4">
         Results
         <span class="text-muted">
-            (@Model.ViewModel.Results.Count)
+            (showing up to 100)
         </span>
     </h2>
 
-    <div class="table-responsive mt-2">
+    <div class="table-responsive mt-2 results-table-wrapper">
         <table class="table table-dark table-striped table-sm align-middle">
             <thead>
                 <tr>
@@ -145,57 +177,76 @@
             </tbody>
         </table>
     </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <button type="submit" form="project-search-form" name="Criteria.Cursor" value="@Model.ViewModel.PreviousCursor" class="btn btn-outline-light btn-sm" disabled="@(Model.ViewModel.HasPrevious ? (string?)null : "disabled")">&larr; Previous</button>
+        <button type="submit" form="project-search-form" name="Criteria.Cursor" value="@Model.ViewModel.NextCursor" class="btn btn-outline-light btn-sm" disabled="@(Model.ViewModel.HasNext ? (string?)null : "disabled")">Next &rarr;</button>
+    </div>
+}
+else if (hasActiveSearch)
+{
+    <p class="mt-4 text-muted">
+        Nothing found. Try widening a filter, removing one, or clearing the game scope.
+    </p>
 }
 else
 {
     <p class="mt-4 text-muted">
-        No results yet. Enter a search query and optional filters, then run a search.
+        Add a game, a filter, or a search term above, then run a search.
     </p>
 }
 
 <template id="filter-row-template">
-    <div class="row g-2 mb-2 filter-row">
-        <div class="col-md-4">
-            <select class="form-select" name="Criteria.Filters[__index__].Field">
-                <option value="">-- Field --</option>
-                <option value="Name">Name</option>
-                <option value="Slug">Slug</option>
-                <option value="Summary">Summary</option>
-                <option value="GameId">Game id</option>
-                <option value="GameName">Game name</option>
-                <option value="Status">Status (enum value)</option>
-                <option value="DownloadCount">Download count</option>
-                <option value="ThumbsUpCount">Thumbs up</option>
-                <option value="Rating">Rating</option>
-                <option value="GamePopularityRank">Game popularity rank</option>
-                <option value="ClassId">Class id</option>
-                <option value="PrimaryCategoryId">Primary category id</option>
-                <option value="IsFeatured">Is featured</option>
-                <option value="IsAvailable">Is available</option>
-                <option value="AllowModDistribution">Allow mod distribution</option>
-                <option value="DateCreated">Date created</option>
-                <option value="DateModified">Date modified</option>
-                <option value="DateReleased">Date released</option>
-                <option value="LatestUpdate">Latest update</option>
-            </select>
+    <div class="filter-row" data-index="__index__">
+        <div class="filter-chip" role="button" tabindex="0">
+            <i class="bi filter-type-icon"></i>
+            <span class="filter-chip-summary">New filter</span>
+            <button type="button" class="btn-close btn-close-white remove-filter" aria-label="Remove filter"></button>
         </div>
-        <div class="col-md-3">
-            <select class="form-select" name="Criteria.Filters[__index__].Operator">
-                <option value="">-- Operator --</option>
-                <option value="eq">Equals</option>
-                <option value="neq">Not equal</option>
-                <option value="gte">&gt;=</option>
-                <option value="lte">&lt;=</option>
-                <option value="gt">&gt;</option>
-                <option value="lt">&lt;</option>
-                <option value="contains">Contains</option>
-            </select>
-        </div>
-        <div class="col-md-4">
-            <input class="form-control" name="Criteria.Filters[__index__].Value" />
-        </div>
-        <div class="col-md-1 d-flex align-items-center">
-            <button type="button" class="btn btn-outline-danger btn-sm remove-filter" title="Remove filter">&times;</button>
+        <div class="filter-editor row g-2">
+            <div class="col-md-4">
+                <select class="form-select filter-field" name="Criteria.Filters[__index__].Field">
+                    <option value="">-- Field --</option>
+                    <option value="Name">Name</option>
+                    <option value="Slug">Slug</option>
+                    <option value="Summary">Summary</option>
+                    <option value="Author">Author</option>
+                    <option value="GameName">Game name</option>
+                    <option value="Status">Status</option>
+                    <option value="DownloadCount">Download count</option>
+                    <option value="ThumbsUpCount">Thumbs up</option>
+                    <option value="Rating">Rating</option>
+                    <option value="GamePopularityRank">Game popularity rank</option>
+                    <option value="ClassId">Class</option>
+                    <option value="PrimaryCategoryId">Category</option>
+                    <option value="IsFeatured">Is featured</option>
+                    <option value="IsAvailable">Is available</option>
+                    <option value="AllowModDistribution">Allow mod distribution</option>
+                    <option value="DateCreated">Date created</option>
+                    <option value="DateModified">Date modified</option>
+                    <option value="DateReleased">Date released</option>
+                    <option value="LatestUpdate">Latest update</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select filter-operator" name="Criteria.Filters[__index__].Operator">
+                    <option value="">-- Operator --</option>
+                    <option value="eq">Equals</option>
+                    <option value="neq">Not equal</option>
+                    <option value="gte">&gt;=</option>
+                    <option value="lte">&lt;=</option>
+                    <option value="gt">&gt;</option>
+                    <option value="lt">&lt;</option>
+                    <option value="contains">Contains</option>
+                </select>
+            </div>
+            <div class="col-md-4 filter-value-container">
+                <input class="form-control filter-value" name="Criteria.Filters[__index__].Value" />
+            </div>
+            <div class="col-md-1 d-flex align-items-center gap-1">
+                <button type="button" class="btn btn-outline-light btn-sm filter-done-btn" title="Done"><i class="bi bi-check-lg"></i></button>
+                <button type="button" class="btn btn-outline-danger btn-sm remove-filter" title="Remove filter">&times;</button>
+            </div>
         </div>
     </div>
 </template>
@@ -211,30 +262,553 @@ else
                 return;
             }
 
-            function getNextIndex() {
-                const rows = container.querySelectorAll('.filter-row');
-                return rows.length;
+            const FIELD_META = {
+                Name: { type: 'string', icon: 'bi-search' },
+                Slug: { type: 'string', icon: 'bi-search' },
+                Summary: { type: 'string', icon: 'bi-search' },
+                Author: { type: 'author', icon: 'bi-search' },
+                GameName: { type: 'string', icon: 'bi-search' },
+                Status: { type: 'status', icon: 'bi-list-ul' },
+                DownloadCount: { type: 'numeric', icon: 'bi-hash' },
+                ThumbsUpCount: { type: 'numeric', icon: 'bi-hash' },
+                Rating: { type: 'numeric', icon: 'bi-hash' },
+                GamePopularityRank: { type: 'numeric', icon: 'bi-hash' },
+                ClassId: { type: 'class', icon: 'bi-list-ul' },
+                PrimaryCategoryId: { type: 'category', icon: 'bi-list-ul' },
+                IsFeatured: { type: 'boolean', icon: 'bi-toggle-on' },
+                IsAvailable: { type: 'boolean', icon: 'bi-toggle-on' },
+                AllowModDistribution: { type: 'boolean', icon: 'bi-toggle-on' },
+                DateCreated: { type: 'date', icon: 'bi-calendar3' },
+                DateModified: { type: 'date', icon: 'bi-calendar3' },
+                DateReleased: { type: 'date', icon: 'bi-calendar3' },
+                LatestUpdate: { type: 'date', icon: 'bi-calendar3' }
+            };
+
+            const OPERATORS_BY_TYPE = {
+                string: ['eq', 'neq', 'contains'],
+                author: ['eq', 'contains'],
+                boolean: ['eq', 'neq'],
+                status: ['eq', 'neq'],
+                class: ['eq', 'neq', 'gte', 'lte', 'gt', 'lt'],
+                category: ['eq', 'neq', 'gte', 'lte', 'gt', 'lt'],
+                numeric: ['eq', 'neq', 'gte', 'lte', 'gt', 'lt'],
+                date: ['eq', 'neq', 'gte', 'lte', 'gt', 'lt']
+            };
+
+            const OPERATOR_LABELS = { eq: 'Equals', neq: 'Not equal', gte: '>=', lte: '<=', gt: '>', lt: '<', contains: 'Contains' };
+
+            const MOD_STATUSES = [
+                [1, 'New'], [2, 'Changes required'], [3, 'Under soft review'], [4, 'Approved'],
+                [5, 'Rejected'], [6, 'Changes made'], [7, 'Inactive'], [8, 'Abandoned'],
+                [9, 'Deleted'], [10, 'Under review']
+            ];
+
+            const RANGE_FIELDS = {
+                DownloadCount: ['minDownloadCount', 'maxDownloadCount'],
+                ThumbsUpCount: ['minThumbsUpCount', 'maxThumbsUpCount'],
+                Rating: ['minRating', 'maxRating'],
+                GamePopularityRank: ['minGamePopularityRank', 'maxGamePopularityRank'],
+                DateCreated: ['minDateCreated', 'maxDateCreated'],
+                DateModified: ['minDateModified', 'maxDateModified'],
+                DateReleased: ['minDateReleased', 'maxDateReleased'],
+                LatestUpdate: ['minLatestUpdate', 'maxLatestUpdate']
+            };
+
+            let allGames = [];
+            let currentGameId = @(Model.Criteria.GameId.HasValue ? Model.Criteria.GameId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null");
+            let fieldRanges = null;
+            const categoryCache = new Map();
+
+            function formatNumber(n) {
+                return Number(n).toLocaleString();
             }
+
+            function fieldRangeHint(field) {
+                if (!fieldRanges) return null;
+                const keys = RANGE_FIELDS[field];
+                if (!keys) return null;
+                const min = fieldRanges[keys[0]];
+                const max = fieldRanges[keys[1]];
+                if (min === null || min === undefined || max === null || max === undefined) return null;
+                return { min, max };
+            }
+
+            function buildStatusSelect(index, presetValue) {
+                const select = document.createElement('select');
+                select.className = 'form-select filter-value';
+                select.name = `Criteria.Filters[${index}].Value`;
+                const blank = document.createElement('option');
+                blank.value = '';
+                blank.textContent = '-- Status --';
+                select.appendChild(blank);
+                MOD_STATUSES.forEach(([value, label]) => {
+                    const opt = document.createElement('option');
+                    opt.value = String(value);
+                    opt.textContent = label;
+                    if (presetValue === String(value)) opt.selected = true;
+                    select.appendChild(opt);
+                });
+                return select;
+            }
+
+            function buildBooleanSelect(index, presetValue) {
+                const select = document.createElement('select');
+                select.className = 'form-select filter-value';
+                select.name = `Criteria.Filters[${index}].Value`;
+                const blank = document.createElement('option');
+                blank.value = '';
+                blank.textContent = '-- Select --';
+                select.appendChild(blank);
+                [['true', 'Yes'], ['false', 'No']].forEach(([value, label]) => {
+                    const opt = document.createElement('option');
+                    opt.value = value;
+                    opt.textContent = label;
+                    if (presetValue === value) opt.selected = true;
+                    select.appendChild(opt);
+                });
+                return select;
+            }
+
+            function buildNumberInput(index, presetValue, field) {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'form-control filter-value';
+                input.name = `Criteria.Filters[${index}].Value`;
+                if (presetValue) input.value = presetValue;
+                const hint = field ? fieldRangeHint(field) : null;
+                if (hint) input.placeholder = `${formatNumber(hint.min)} – ${formatNumber(hint.max)}`;
+                return input;
+            }
+
+            function buildDateInput(index, presetValue, field) {
+                const input = document.createElement('input');
+                input.type = 'date';
+                input.className = 'form-control filter-value';
+                input.name = `Criteria.Filters[${index}].Value`;
+                if (presetValue) input.value = String(presetValue).substring(0, 10);
+                const hint = field ? fieldRangeHint(field) : null;
+                if (hint) {
+                    input.min = String(hint.min).substring(0, 10);
+                    input.placeholder = `${String(hint.min).substring(0, 10)} – today`;
+                }
+                return input;
+            }
+
+            function buildTextInput(index, presetValue) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'form-control filter-value';
+                input.name = `Criteria.Filters[${index}].Value`;
+                if (presetValue) input.value = presetValue;
+                return input;
+            }
+
+            async function loadCategoriesFor(gameId) {
+                if (categoryCache.has(gameId)) return categoryCache.get(gameId);
+                const promise = fetch(`/api/ProjectSearch/Categories/${gameId}`)
+                    .then(r => r.json())
+                    .catch(() => ({ classes: [], categories: [] }));
+                categoryCache.set(gameId, promise);
+                return promise;
+            }
+
+            function buildCategoryCombobox(row, index, listKey, presetValue) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'combobox';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'form-control combobox-input';
+                input.autocomplete = 'off';
+                input.placeholder = 'Search categories...';
+
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.className = 'filter-value';
+                hidden.name = `Criteria.Filters[${index}].Value`;
+                if (presetValue) hidden.value = presetValue;
+
+                const suggestions = document.createElement('div');
+                suggestions.className = 'combobox-suggestions d-none';
+
+                let items = [];
+
+                function render(filterText) {
+                    suggestions.innerHTML = '';
+                    const filtered = filterText
+                        ? items.filter(i => i.name.toLowerCase().includes(filterText.toLowerCase()))
+                        : items;
+
+                    filtered.slice(0, 30).forEach(i => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'combobox-suggestion';
+                        btn.textContent = i.name;
+                        btn.addEventListener('click', () => {
+                            hidden.value = i.id;
+                            input.value = i.name;
+                            suggestions.classList.add('d-none');
+                            hidden.dispatchEvent(new Event('input', { bubbles: true }));
+                            hidden.dispatchEvent(new Event('change', { bubbles: true }));
+                        });
+                        suggestions.appendChild(btn);
+                    });
+
+                    suggestions.classList.toggle('d-none', filtered.length === 0);
+                }
+
+                loadCategoriesFor(currentGameId).then(data => {
+                    items = data[listKey] || [];
+                    if (presetValue) {
+                        const match = items.find(i => String(i.id) === String(presetValue));
+                        const fallbackLabel = listKey === 'classes' ? 'Class' : 'Category';
+                        input.value = match ? match.name : `${fallbackLabel}: ${presetValue}`;
+                        updateChipSummary(row);
+                    }
+                });
+
+                input.addEventListener('focus', () => render(input.value));
+                input.addEventListener('input', () => {
+                    render(input.value);
+                    const typed = input.value.trim();
+                    const match = items.find(i => i.name.toLowerCase() === typed.toLowerCase());
+                    hidden.value = match ? match.id : (/^\d+$/.test(typed) ? typed : '');
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!wrapper.contains(e.target)) {
+                        suggestions.classList.add('d-none');
+                    }
+                });
+
+                wrapper.appendChild(input);
+                wrapper.appendChild(hidden);
+                wrapper.appendChild(suggestions);
+                return wrapper;
+            }
+
+            function updateOperatorOptions(row, type) {
+                const select = row.querySelector('.filter-operator');
+                const allowed = OPERATORS_BY_TYPE[type] || OPERATORS_BY_TYPE.string;
+                const current = select.value;
+                select.innerHTML = '';
+                const blank = document.createElement('option');
+                blank.value = '';
+                blank.textContent = '-- Operator --';
+                select.appendChild(blank);
+                allowed.forEach(op => {
+                    const opt = document.createElement('option');
+                    opt.value = op;
+                    opt.textContent = OPERATOR_LABELS[op];
+                    if (op === current) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            }
+
+            function getValueDisplayText(row) {
+                const valueContainer = row.querySelector('.filter-value-container');
+                const select = valueContainer.querySelector('select');
+                if (select) return select.options[select.selectedIndex]?.text || '(none)';
+                const comboInput = valueContainer.querySelector('.combobox-input');
+                if (comboInput) return comboInput.value || '(none)';
+                const input = valueContainer.querySelector('input');
+                return input && input.value ? input.value : '(none)';
+            }
+
+            function updateChipSummary(row) {
+                const fieldSelect = row.querySelector('.filter-field');
+                const operatorSelect = row.querySelector('.filter-operator');
+                const summaryEl = row.querySelector('.filter-chip-summary');
+                const iconEl = row.querySelector('.filter-type-icon');
+
+                const field = fieldSelect.value;
+                const meta = FIELD_META[field];
+                iconEl.className = 'bi filter-type-icon ' + (meta ? meta.icon : 'bi-question-circle');
+
+                if (!field) {
+                    summaryEl.textContent = 'New filter';
+                    return;
+                }
+
+                const fieldLabel = fieldSelect.options[fieldSelect.selectedIndex]?.text || field;
+                const operatorLabel = operatorSelect.options[operatorSelect.selectedIndex]?.text || '';
+                const valueText = getValueDisplayText(row);
+
+                summaryEl.textContent = `${fieldLabel} ${operatorLabel} ${valueText}`.replace(/\s+/g, ' ').trim();
+            }
+
+            function applyValueWidget(row, field, presetValue) {
+                const valueContainer = row.querySelector('.filter-value-container');
+                valueContainer.innerHTML = '';
+                const meta = FIELD_META[field] || { type: 'string' };
+                const index = row.dataset.index;
+                let widget;
+
+                switch (meta.type) {
+                    case 'status':
+                        widget = buildStatusSelect(index, presetValue);
+                        break;
+                    case 'boolean':
+                        widget = buildBooleanSelect(index, presetValue);
+                        break;
+                    case 'class':
+                    case 'category':
+                        if (currentGameId) {
+                            widget = buildCategoryCombobox(row, index, meta.type === 'class' ? 'classes' : 'categories', presetValue);
+                        } else {
+                            widget = buildNumberInput(index, presetValue, field);
+                            widget.placeholder = 'Pick a game above to browse categories, or enter an id';
+                        }
+                        break;
+                    case 'numeric':
+                        widget = buildNumberInput(index, presetValue, field);
+                        break;
+                    case 'date':
+                        widget = buildDateInput(index, presetValue, field);
+                        break;
+                    default:
+                        widget = buildTextInput(index, presetValue);
+                        break;
+                }
+
+                valueContainer.appendChild(widget);
+                updateOperatorOptions(row, meta.type);
+                updateChipSummary(row);
+            }
+
+            function getNextIndex() {
+                return container.querySelectorAll('.filter-row').length;
+            }
+
+            function refreshCategoryRows() {
+                container.querySelectorAll('.filter-row').forEach(row => {
+                    const field = row.querySelector('.filter-field')?.value;
+                    const meta = FIELD_META[field];
+                    if (meta && (meta.type === 'class' || meta.type === 'category')) {
+                        const currentValueEl = row.querySelector('.filter-value-container [name$=".Value"]');
+                        applyValueWidget(row, field, currentValueEl ? currentValueEl.value : null);
+                    }
+                });
+            }
+
+            function refreshRangeHintedRows() {
+                container.querySelectorAll('.filter-row').forEach(row => {
+                    const field = row.querySelector('.filter-field')?.value;
+                    if (field && RANGE_FIELDS[field]) {
+                        const currentValueEl = row.querySelector('.filter-value-container [name$=".Value"]');
+                        applyValueWidget(row, field, currentValueEl ? currentValueEl.value : null);
+                    }
+                });
+            }
+
+            document.addEventListener('cflookup:game-changed', refreshCategoryRows);
+
+            container.addEventListener('click', function (e) {
+                const removeBtn = e.target.closest('.remove-filter');
+                if (removeBtn) {
+                    removeBtn.closest('.filter-row')?.remove();
+                    return;
+                }
+
+                const chip = e.target.closest('.filter-chip');
+                if (chip) {
+                    const row = chip.closest('.filter-row');
+                    row.classList.add('editing');
+                    row.querySelector('.filter-field')?.focus();
+                    return;
+                }
+
+                const doneBtn = e.target.closest('.filter-done-btn');
+                if (doneBtn) {
+                    const row = doneBtn.closest('.filter-row');
+                    row.classList.remove('editing');
+                    updateChipSummary(row);
+                }
+            });
+
+            container.addEventListener('change', function (e) {
+                const row = e.target.closest('.filter-row');
+                if (!row) return;
+
+                if (e.target.classList.contains('filter-field')) {
+                    applyValueWidget(row, e.target.value, null);
+                } else if (e.target.classList.contains('filter-operator') || e.target.classList.contains('filter-value')) {
+                    updateChipSummary(row);
+                }
+            });
+
+            container.addEventListener('input', function (e) {
+                const row = e.target.closest('.filter-row');
+                if (!row) return;
+                if (e.target.classList.contains('filter-value') || e.target.classList.contains('combobox-input')) {
+                    updateChipSummary(row);
+                }
+            });
 
             addButton.addEventListener('click', function () {
                 const index = getNextIndex();
                 const html = template.innerHTML.replace(/__index__/g, index);
-                const wrapper = document.createElement('div');
-                wrapper.innerHTML = html;
-                const row = wrapper.firstElementChild;
+                const wrapperEl = document.createElement('div');
+                wrapperEl.innerHTML = html;
+                const row = wrapperEl.firstElementChild;
+                row.dataset.index = index;
                 container.appendChild(row);
+                applyValueWidget(row, '', null);
+                row.classList.add('editing');
+                row.querySelector('.filter-field')?.focus();
             });
 
-            container.addEventListener('click', function (e) {
-                const target = e.target;
-                if (target && target.classList.contains('remove-filter')) {
-                    const row = target.closest('.filter-row');
-                    if (row) {
-                        row.remove();
+            function initExistingRows() {
+                container.querySelectorAll('.filter-row').forEach(row => {
+                    const fieldSelect = row.querySelector('.filter-field');
+                    const rawValueInput = row.querySelector('.filter-value-container [name$=".Value"]');
+                    const presetValue = rawValueInput ? rawValueInput.value : '';
+
+                    applyValueWidget(row, fieldSelect.value, presetValue);
+
+                    const hasCompleteFilter = fieldSelect.value && row.querySelector('.filter-operator').value && presetValue;
+                    if (!hasCompleteFilter) {
+                        row.classList.add('editing');
                     }
+                });
+            }
+
+            // --- Game scope bar ---
+
+            const gameScopeInput = document.getElementById('gameScopeInput');
+            const gameScopeHidden = document.getElementById('gameScopeHidden');
+            const gameScopeSuggestions = document.getElementById('gameScopeSuggestions');
+            const scopePicker = document.getElementById('scope-bar-picker');
+            const scopePill = document.getElementById('scope-bar-pill');
+            const scopePillLabel = document.getElementById('scope-pill-label');
+            const scopeClearBtn = document.getElementById('scope-clear-btn');
+
+            function setScopedGame(gameId, label) {
+                currentGameId = gameId || null;
+                gameScopeHidden.value = currentGameId ?? '';
+
+                if (currentGameId) {
+                    scopePillLabel.textContent = label;
+                    scopePicker.classList.add('d-none');
+                    scopePill.classList.remove('d-none');
+                } else {
+                    scopePicker.classList.remove('d-none');
+                    scopePill.classList.add('d-none');
+                    gameScopeInput.value = '';
                 }
-            });
+
+                document.dispatchEvent(new CustomEvent('cflookup:game-changed', { detail: { gameId: currentGameId } }));
+            }
+
+            if (scopeClearBtn) {
+                scopeClearBtn.addEventListener('click', () => setScopedGame(null, ''));
+            }
+
+            function renderGameSuggestions(list, showHint) {
+                gameScopeSuggestions.innerHTML = '';
+
+                if (showHint) {
+                    const hint = document.createElement('div');
+                    hint.className = 'combobox-hint';
+                    hint.textContent = 'Showing top 10 by project count — keep typing to search all games, or enter a game ID directly.';
+                    gameScopeSuggestions.appendChild(hint);
+                }
+
+                list.forEach(g => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'combobox-suggestion';
+                    item.textContent = `${g.name} (${formatNumber(g.projectCount)} projects)`;
+                    item.addEventListener('click', () => {
+                        setScopedGame(g.gameId, g.name);
+                        gameScopeSuggestions.classList.add('d-none');
+                    });
+                    gameScopeSuggestions.appendChild(item);
+                });
+
+                gameScopeSuggestions.classList.toggle('d-none', list.length === 0 && !showHint);
+            }
+
+            async function resolveGameById(gameId) {
+                gameScopeSuggestions.innerHTML = '';
+                const loading = document.createElement('div');
+                loading.className = 'combobox-hint';
+                loading.textContent = `Looking up game ${gameId}...`;
+                gameScopeSuggestions.appendChild(loading);
+                gameScopeSuggestions.classList.remove('d-none');
+
+                try {
+                    const res = await fetch(`/api/ProjectSearch/Games/${gameId}`);
+                    const data = await res.json();
+                    gameScopeSuggestions.innerHTML = '';
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'combobox-suggestion';
+                    item.textContent = `Use ${data.label} directly`;
+                    item.addEventListener('click', () => {
+                        setScopedGame(gameId, data.label);
+                        gameScopeSuggestions.classList.add('d-none');
+                    });
+                    gameScopeSuggestions.appendChild(item);
+                } catch {
+                    gameScopeSuggestions.innerHTML = '';
+                    gameScopeSuggestions.classList.add('d-none');
+                }
+            }
+
+            if (gameScopeInput) {
+                gameScopeInput.addEventListener('focus', () => {
+                    if (!gameScopeInput.value) {
+                        renderGameSuggestions(allGames.slice(0, 10), true);
+                    }
+                });
+
+                gameScopeInput.addEventListener('input', () => {
+                    const q = gameScopeInput.value.trim();
+                    if (!q) {
+                        renderGameSuggestions(allGames.slice(0, 10), true);
+                        return;
+                    }
+
+                    const matches = allGames.filter(g => g.name.toLowerCase().includes(q.toLowerCase())).slice(0, 20);
+
+                    if (matches.length === 0 && /^\d+$/.test(q)) {
+                        resolveGameById(parseInt(q, 10));
+                        return;
+                    }
+
+                    renderGameSuggestions(matches, false);
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('#scope-bar-picker')) {
+                        gameScopeSuggestions.classList.add('d-none');
+                    }
+                });
+            }
+
+            async function loadGames() {
+                try {
+                    const res = await fetch('/api/ProjectSearch/Games');
+                    allGames = await res.json();
+                } catch {
+                    allGames = [];
+                }
+            }
+
+            async function loadFieldRanges() {
+                try {
+                    const res = await fetch('/api/ProjectSearch/FieldRanges');
+                    fieldRanges = await res.json();
+                } catch {
+                    fieldRanges = null;
+                }
+                refreshRangeHintedRows();
+            }
+
+            initExistingRows();
+            loadGames();
+            loadFieldRanges();
         })();
     </script>
 }
-

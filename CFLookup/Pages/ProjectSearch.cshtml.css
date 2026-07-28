@@ -1,0 +1,141 @@
+.scope-bar {
+    position: relative;
+    padding: 1rem 1rem 0.75rem;
+    border-top: 3px solid #f16436;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 0 0 .375rem .375rem;
+}
+
+.scope-picker {
+    position: relative;
+    max-width: 28rem;
+}
+
+.scope-pill-row {
+    display: flex;
+}
+
+.scope-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    background-color: rgba(241, 100, 54, 0.15);
+    border: 1px solid #f16436;
+    color: #fff;
+    border-radius: 999px;
+    padding: .35rem .75rem;
+}
+
+.combobox {
+    position: relative;
+}
+
+.combobox-suggestions {
+    position: absolute;
+    z-index: 20;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: .25rem;
+    max-height: 16rem;
+    overflow-y: auto;
+    background-color: #2b3035;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: .375rem;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, 0.4);
+}
+
+.combobox-hint {
+    padding: .5rem .75rem;
+    font-size: .8rem;
+    color: #adb5bd;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.combobox-suggestion {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: .4rem .75rem;
+    background: none;
+    border: none;
+    color: #fff;
+}
+
+.combobox-suggestion:hover,
+.combobox-suggestion:focus {
+    background-color: #f16436;
+    color: #fff;
+}
+
+#filter-rows {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.filter-row {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: .375rem;
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.filter-chip {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .75rem;
+    cursor: pointer;
+}
+
+.filter-row.editing .filter-chip {
+    display: none;
+}
+
+.filter-editor {
+    display: none;
+    padding: .5rem .5rem .5rem;
+    margin: 0;
+}
+
+.filter-row.editing .filter-editor {
+    display: flex;
+}
+
+.filter-type-icon {
+    color: #f16436;
+}
+
+.filter-chip-summary {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.filter-chip .remove-filter {
+    flex: 0 0 auto;
+}
+
+.btn-add-filter {
+    color: #f16436;
+    border: 1px dashed #f16436;
+    background: transparent;
+}
+
+.btn-add-filter:hover {
+    color: #fff;
+    background-color: #f16436;
+}
+
+.results-table-wrapper {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.results-table-wrapper thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #212529;
+}

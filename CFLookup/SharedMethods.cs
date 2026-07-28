@@ -1,11 +1,14 @@
-﻿using CurseForge.APIClient;
+﻿using CFLookup.Models;
+using CurseForge.APIClient;
 using CurseForge.APIClient.Models;
 using CurseForge.APIClient.Models.Files;
 using CurseForge.APIClient.Models.Games;
 using CurseForge.APIClient.Models.Mods;
 using Hangfire;
+using Npgsql;
 using StackExchange.Redis;
 using System.Collections.Concurrent;
+using System.Data;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -97,6 +100,171 @@ namespace CFLookup
             await _redis.StringSetAsync($"cf-categories-id-{gameId}", JsonSerializer.Serialize(categories.Data), TimeSpan.FromMinutes(5));
             await Task.Delay(25);
             return categories.Data;
+        }
+
+        public async static Task<List<GameProjectStat>> GetGamesWithProjectStats(IDatabaseAsync _redis, NpgsqlConnection conn)
+        {
+            var cachedResponse = await _redis.StringGetAsync("cf-search-games");
+            if (!cachedResponse.IsNullOrEmpty)
+            {
+                return JsonSerializer.Deserialize<List<GameProjectStat>>(cachedResponse)!;
+            }
+
+            if (conn.State != ConnectionState.Open)
+            {
+                await conn.OpenAsync();
+            }
+
+            var stats = new List<GameProjectStat>();
+
+            await using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = """
+                    SELECT gd.gameid, gd.name, COUNT(*) AS project_count
+                    FROM project_data pd
+                    JOIN game_data gd ON gd.gameid = pd.gameid
+                    GROUP BY gd.gameid, gd.name
+                    ORDER BY project_count DESC
+                    """;
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    stats.Add(new GameProjectStat
+                    {
+                        GameId = reader.GetInt32(0),
+                        Name = reader.GetString(1),
+                        ProjectCount = reader.GetInt64(2)
+                    });
+                }
+            }
+
+            await _redis.StringSetAsync("cf-search-games", JsonSerializer.Serialize(stats), TimeSpan.FromHours(1));
+
+            return stats;
+        }
+
+        public async static Task<string?> GetGameNameForDisplay(NpgsqlConnection conn, IDatabaseAsync _redis, ApiClient _cfApiClient, int gameId)
+        {
+            if (conn.State != ConnectionState.Open)
+            {
+                await conn.OpenAsync();
+            }
+
+            await using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT name FROM game_data WHERE gameid = @gameId";
+                cmd.Parameters.AddWithValue("gameId", gameId);
+
+                var result = await cmd.ExecuteScalarAsync();
+                if (result is string name && !string.IsNullOrWhiteSpace(name))
+                {
+                    return name;
+                }
+            }
+
+            try
+            {
+                var game = await GetGameInfo(_redis, _cfApiClient, gameId);
+                if (!string.IsNullOrWhiteSpace(game?.Name))
+                {
+                    return game.Name;
+                }
+            }
+            catch
+            {
+                // CF API lookup failed too, caller falls back to "GameId: {id}"
+            }
+
+            return null;
+        }
+
+        public async static Task<List<Category>> GetCategoriesForSearch(IDatabaseAsync _redis, ApiClient _cfApiClient, int gameId)
+        {
+            // TODO: query category_data here first once it exists, fall back to the below
+            return await GetCategoryInfo(_redis, _cfApiClient, gameId);
+        }
+
+        public async static Task<FieldRangeStats> GetFieldRangeStats(IDatabaseAsync _redis, NpgsqlConnection conn)
+        {
+            var cachedResponse = await _redis.StringGetAsync("cf-search-field-ranges");
+            if (!cachedResponse.IsNullOrEmpty)
+            {
+                return JsonSerializer.Deserialize<FieldRangeStats>(cachedResponse)!;
+            }
+
+            if (conn.State != ConnectionState.Open)
+            {
+                await conn.OpenAsync();
+            }
+
+            var stats = new FieldRangeStats();
+
+            await using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = """
+                    SELECT
+                      MIN(downloadcount)      AS min_downloadcount,      MAX(downloadcount)      AS max_downloadcount,
+                      MIN(thumbsupcount)      AS min_thumbsupcount,      MAX(thumbsupcount)      AS max_thumbsupcount,
+                      MIN(rating)             AS min_rating,             MAX(rating)             AS max_rating,
+                      MIN(gamepopularityrank) AS min_gamepopularityrank, MAX(gamepopularityrank) AS max_gamepopularityrank,
+                      MIN(datecreated)        AS min_datecreated,        MAX(datecreated)        AS max_datecreated,
+                      MIN(datemodified)       AS min_datemodified,       MAX(datemodified)       AS max_datemodified,
+                      MIN(datereleased)       AS min_datereleased,       MAX(datereleased)       AS max_datereleased,
+                      MIN(latestupdate)       AS min_latestupdate,       MAX(latestupdate)       AS max_latestupdate
+                    FROM project_data
+                    """;
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    long? ReadInt64(string column)
+                    {
+                        var ordinal = reader.GetOrdinal(column);
+                        return reader.IsDBNull(ordinal) ? null : reader.GetInt64(ordinal);
+                    }
+
+                    double? ReadDouble(string column)
+                    {
+                        var ordinal = reader.GetOrdinal(column);
+                        return reader.IsDBNull(ordinal) ? null : reader.GetDouble(ordinal);
+                    }
+
+                    DateTimeOffset? ReadDateTimeOffset(string column)
+                    {
+                        var ordinal = reader.GetOrdinal(column);
+                        return reader.IsDBNull(ordinal) ? null : reader.GetDateTime(ordinal);
+                    }
+
+                    stats.MinDownloadCount = ReadInt64("min_downloadcount");
+                    stats.MaxDownloadCount = ReadInt64("max_downloadcount");
+
+                    stats.MinThumbsUpCount = ReadInt64("min_thumbsupcount");
+                    stats.MaxThumbsUpCount = ReadInt64("max_thumbsupcount");
+
+                    stats.MinRating = ReadDouble("min_rating");
+                    stats.MaxRating = ReadDouble("max_rating");
+
+                    stats.MinGamePopularityRank = ReadInt64("min_gamepopularityrank");
+                    stats.MaxGamePopularityRank = ReadInt64("max_gamepopularityrank");
+
+                    stats.MinDateCreated = ReadDateTimeOffset("min_datecreated");
+                    stats.MaxDateCreated = ReadDateTimeOffset("max_datecreated");
+
+                    stats.MinDateModified = ReadDateTimeOffset("min_datemodified");
+                    stats.MaxDateModified = ReadDateTimeOffset("max_datemodified");
+
+                    stats.MinDateReleased = ReadDateTimeOffset("min_datereleased");
+                    stats.MaxDateReleased = ReadDateTimeOffset("max_datereleased");
+
+                    stats.MinLatestUpdate = ReadDateTimeOffset("min_latestupdate");
+                    stats.MaxLatestUpdate = ReadDateTimeOffset("max_latestupdate");
+                }
+            }
+
+            await _redis.StringSetAsync("cf-search-field-ranges", JsonSerializer.Serialize(stats), TimeSpan.FromHours(1));
+
+            return stats;
         }
 
         public async static Task<List<Mod>> SearchModsAsync(IDatabaseAsync _redis, ApiClient _cfApiClient, List<int> modIds)
