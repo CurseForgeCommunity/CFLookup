@@ -4,6 +4,7 @@ using CurseForge.APIClient.Models.Mods;
 using Hangfire;
 using Hangfire.Server;
 using Npgsql;
+using StackExchange.Redis;
 using System.Text;
 using System.Text.Json;
 
@@ -18,289 +19,295 @@ namespace CFLookup.Jobs
 
         public async static Task RunAsync(PerformContext context, IJobCancellationToken token)
         {
-            if (SharedMethods.CheckIfTaskIsScheduledOrInProgress("StoreCFApiFiles", "RunAsync"))
-            {
-                return;
-            }
-
             using (var scope = Program.ServiceProvider.CreateScope())
             {
                 try
                 {
                     token.ThrowIfCancellationRequested();
                     
-                    var cfClient = scope.ServiceProvider.GetRequiredService<ApiClient>();
-                    
-                    var influxWriter = scope.ServiceProvider.GetRequiredService<InfluxDBWriter>();
+                    var _redis = scope.ServiceProvider.GetRequiredService<ConnectionMultiplexer>();
 
-                    var conn = scope.ServiceProvider.GetRequiredService<NpgsqlConnection>();
-                    await conn.OpenAsync();
-
-                    var emptyBuckets = 0;
-
-                    var buckets = SharedMethods.GetBucketRanges(1, int.MaxValue, BUCKET_SIZE);
-
-                    foreach (var bucket in buckets)
+                    await using (var jobLock = await RedisJobLock.CreateAsync(
+                                     _redis.GetDatabase(0),
+                                     "StoreCFApiProjects",
+                                     TimeSpan.FromSeconds(15)))
                     {
-                        token.ThrowIfCancellationRequested();
-                        
-                        var _bucket = Enumerable.Range(bucket.start, bucket.items);
-
-                        var modList = await cfClient.GetModsByIdListAsync(new GetModsByIdsListRequestBody
+                        if (jobLock == null)
                         {
-                            FilterPcOnly = true,
-                            ModIds = _bucket.ToList()
-                        });
-                        
-                        token.ThrowIfCancellationRequested();
-
-                        if (modList.Error != null && modList.Error.ErrorCode != 404 && !string.IsNullOrWhiteSpace(modList.Error.ErrorMessage))
-                        {
-                            switch (modList.Error.ErrorCode)
-                            {
-                                case 502:
-                                case 504:
-                                    continue;
-                                default:
-                                    await SendDiscordErrorNotification(scope, $"The CF API threw an error at me: **{modList.Error.ErrorCode}**: {modList.Error.ErrorMessage}");
-                                    break;
-                            }
+                            return;
                         }
 
-                        if (modList.Data.Count == 0)
-                        {
-                            emptyBuckets++;
-                            if (emptyBuckets >= EMPTY_BUCKETS)
-                            {
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            emptyBuckets = 0;
-                        }
+                        var cfClient = scope.ServiceProvider.GetRequiredService<ApiClient>();
 
-                        await using var tx = await conn.BeginTransactionAsync();
-                        await using var batch = new NpgsqlBatch(conn);
-                        batch.Transaction = tx;
-                        batch.Timeout = 600;
-                        
-                        token.ThrowIfCancellationRequested();
+                        var influxWriter = scope.ServiceProvider.GetRequiredService<InfluxDBWriter>();
 
-                        var projectMetrics = new List<InfluxProjectMetric>();
-                        
-                        var currentTs = DateTime.UtcNow;
+                        var conn = scope.ServiceProvider.GetRequiredService<NpgsqlConnection>();
+                        await conn.OpenAsync();
 
-                        foreach (var mod in modList.Data)
+                        var emptyBuckets = 0;
+
+                        var buckets = SharedMethods.GetBucketRanges(1, int.MaxValue, BUCKET_SIZE);
+
+                        foreach (var bucket in buckets)
                         {
                             token.ThrowIfCancellationRequested();
-                            
-                            var cmd = new NpgsqlBatchCommand("""
 
-                                                             INSERT INTO project_data (
-                                                             	projectid,
-                                                             	gameid,
-                                                             	name,
-                                                             	slug,
-                                                             	links,
-                                                             	summary,
-                                                             	status,
-                                                             	downloadcount,
-                                                             	isfeatured,
-                                                             	primarycategoryid,
-                                                             	categories,
-                                                             	classid,
-                                                             	authors,
-                                                             	logo,
-                                                             	screenshots,
-                                                             	mainfileid,
-                                                             	latestfiles,
-                                                             	latestfileindexes,
-                                                             	datecreated,
-                                                             	datemodified,
-                                                             	datereleased,
-                                                             	allowmoddistribution,
-                                                             	gamepopularityrank,
-                                                             	isavailable,
-                                                             	thumbsupcount,
-                                                             	rating
-                                                             ) 
-                                                             VALUES (
-                                                             	$1,
-                                                             	$2,
-                                                             	$3,
-                                                             	$4,
-                                                             	$5,
-                                                             	$6,
-                                                             	$7,
-                                                             	$8,
-                                                             	$9,
-                                                             	$10,
-                                                             	$11,
-                                                             	$12,
-                                                             	$13,
-                                                             	$14,
-                                                             	$15,
-                                                             	$16,
-                                                             	$17,
-                                                             	$18,
-                                                             	$19,
-                                                             	$20,
-                                                             	$21,
-                                                             	$22,
-                                                             	$23,
-                                                             	$24,
-                                                             	$25,
-                                                             	$26
-                                                             )
-                                                             ON CONFLICT (projectid, gameid) DO UPDATE
-                                                             SET 
-                                                             	name=EXCLUDED.name,
-                                                             	slug=EXCLUDED.slug,
-                                                             	links=EXCLUDED.links,
-                                                             	summary=EXCLUDED.summary,
-                                                             	status=EXCLUDED.status,
-                                                             	downloadcount=EXCLUDED.downloadcount,
-                                                             	isfeatured=EXCLUDED.isfeatured,
-                                                             	primarycategoryid=EXCLUDED.primarycategoryid,
-                                                             	categories=EXCLUDED.categories,
-                                                             	classid=EXCLUDED.classid,
-                                                             	authors=EXCLUDED.authors,
-                                                             	logo=EXCLUDED.logo,
-                                                             	screenshots=EXCLUDED.screenshots,
-                                                             	mainfileid=EXCLUDED.mainfileid,
-                                                             	latestfiles=EXCLUDED.latestfiles,
-                                                             	latestfileindexes=EXCLUDED.latestfileindexes,
-                                                             	datecreated=EXCLUDED.datecreated,
-                                                             	datemodified=EXCLUDED.datemodified,
-                                                             	datereleased=EXCLUDED.datereleased,
-                                                             	allowmoddistribution=EXCLUDED.allowmoddistribution,
-                                                             	gamepopularityrank=EXCLUDED.gamepopularityrank,
-                                                             	isavailable=EXCLUDED.isavailable,
-                                                             	thumbsupcount=EXCLUDED.thumbsupcount,
-                                                             	rating=EXCLUDED.rating,
-                                                             	latestupdate=timezone('UTC'::text, now());
+                            var _bucket = Enumerable.Range(bucket.start, bucket.items);
 
-                                                             """);
-
-                            cmd.Parameters.AddWithValue(mod.Id);
-                            cmd.Parameters.AddWithValue(mod.GameId);
-                            cmd.Parameters.AddWithValue(mod.Name);
-                            cmd.Parameters.AddWithValue(mod.Slug);
-                            cmd.Parameters.Add(new NpgsqlParameter()
+                            var modList = await cfClient.GetModsByIdListAsync(new GetModsByIdsListRequestBody
                             {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.Links)
-                            });
-                            cmd.Parameters.AddWithValue(mod.Summary.Replace("\0", ""));
-                            cmd.Parameters.AddWithValue((int)mod.Status);
-                            cmd.Parameters.AddWithValue(mod.DownloadCount);
-                            cmd.Parameters.AddWithValue(mod.IsFeatured);
-                            cmd.Parameters.AddWithValue(mod.PrimaryCategoryId);
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.Categories)
-                            });
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Integer,
-                                Value = (object?)mod.ClassId ?? DBNull.Value
-                            });
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.Authors)
-                            });
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.Logo)
-                            });
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.Screenshots)
-                            });
-                            cmd.Parameters.AddWithValue(mod.MainFileId);
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.LatestFiles)
-                            });
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.LatestFilesIndexes)
-                            });
-                            cmd.Parameters.AddWithValue(mod.DateCreated);
-                            cmd.Parameters.AddWithValue(mod.DateModified);
-                            cmd.Parameters.AddWithValue(mod.DateReleased);
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Boolean,
-                                Value = (object?)mod.AllowModDistribution ?? DBNull.Value
-                            });
-                            cmd.Parameters.AddWithValue(mod.GamePopularityRank);
-                            cmd.Parameters.AddWithValue(mod.IsAvailable);
-                            cmd.Parameters.AddWithValue(mod.ThumbsUpCount);
-                            cmd.Parameters.Add(new NpgsqlParameter
-                            {
-                                NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Double,
-                                Value = (object?)mod.Rating ?? DBNull.Value
+                                FilterPcOnly = true,
+                                ModIds = _bucket.ToList()
                             });
 
-                            batch.BatchCommands.Add(cmd);
-                            
-                            projectMetrics.Add(new InfluxProjectMetric
-                            {
-                                ProjectId = mod.Id,
-                                GameId = mod.GameId,
-                                DownloadCount = mod.DownloadCount,
-                                ThumbsUpCount = mod.ThumbsUpCount,
-                                GamePopularityRank = mod.GamePopularityRank,
-                                Timestamp = currentTs
-                            });
+                            token.ThrowIfCancellationRequested();
 
-                            if (batch.BatchCommands.Count >= 1000)
+                            if (modList.Error != null && modList.Error.ErrorCode != 404 &&
+                                !string.IsNullOrWhiteSpace(modList.Error.ErrorMessage))
+                            {
+                                switch (modList.Error.ErrorCode)
+                                {
+                                    case 502:
+                                    case 504:
+                                        continue;
+                                    default:
+                                        await SendDiscordErrorNotification(scope,
+                                            $"The CF API threw an error at me: **{modList.Error.ErrorCode}**: {modList.Error.ErrorMessage}");
+                                        break;
+                                }
+                            }
+
+                            if (modList.Data.Count == 0)
+                            {
+                                emptyBuckets++;
+                                if (emptyBuckets >= EMPTY_BUCKETS)
+                                {
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                emptyBuckets = 0;
+                            }
+
+                            await using var tx = await conn.BeginTransactionAsync();
+                            await using var batch = new NpgsqlBatch(conn);
+                            batch.Transaction = tx;
+                            batch.Timeout = 600;
+
+                            token.ThrowIfCancellationRequested();
+
+                            var projectMetrics = new List<InfluxProjectMetric>();
+
+                            var currentTs = DateTime.UtcNow;
+
+                            foreach (var mod in modList.Data)
+                            {
+                                token.ThrowIfCancellationRequested();
+
+                                var cmd = new NpgsqlBatchCommand("""
+
+                                                                 INSERT INTO project_data (
+                                                                 	projectid,
+                                                                 	gameid,
+                                                                 	name,
+                                                                 	slug,
+                                                                 	links,
+                                                                 	summary,
+                                                                 	status,
+                                                                 	downloadcount,
+                                                                 	isfeatured,
+                                                                 	primarycategoryid,
+                                                                 	categories,
+                                                                 	classid,
+                                                                 	authors,
+                                                                 	logo,
+                                                                 	screenshots,
+                                                                 	mainfileid,
+                                                                 	latestfiles,
+                                                                 	latestfileindexes,
+                                                                 	datecreated,
+                                                                 	datemodified,
+                                                                 	datereleased,
+                                                                 	allowmoddistribution,
+                                                                 	gamepopularityrank,
+                                                                 	isavailable,
+                                                                 	thumbsupcount,
+                                                                 	rating
+                                                                 ) 
+                                                                 VALUES (
+                                                                 	$1,
+                                                                 	$2,
+                                                                 	$3,
+                                                                 	$4,
+                                                                 	$5,
+                                                                 	$6,
+                                                                 	$7,
+                                                                 	$8,
+                                                                 	$9,
+                                                                 	$10,
+                                                                 	$11,
+                                                                 	$12,
+                                                                 	$13,
+                                                                 	$14,
+                                                                 	$15,
+                                                                 	$16,
+                                                                 	$17,
+                                                                 	$18,
+                                                                 	$19,
+                                                                 	$20,
+                                                                 	$21,
+                                                                 	$22,
+                                                                 	$23,
+                                                                 	$24,
+                                                                 	$25,
+                                                                 	$26
+                                                                 )
+                                                                 ON CONFLICT (projectid, gameid) DO UPDATE
+                                                                 SET 
+                                                                 	name=EXCLUDED.name,
+                                                                 	slug=EXCLUDED.slug,
+                                                                 	links=EXCLUDED.links,
+                                                                 	summary=EXCLUDED.summary,
+                                                                 	status=EXCLUDED.status,
+                                                                 	downloadcount=EXCLUDED.downloadcount,
+                                                                 	isfeatured=EXCLUDED.isfeatured,
+                                                                 	primarycategoryid=EXCLUDED.primarycategoryid,
+                                                                 	categories=EXCLUDED.categories,
+                                                                 	classid=EXCLUDED.classid,
+                                                                 	authors=EXCLUDED.authors,
+                                                                 	logo=EXCLUDED.logo,
+                                                                 	screenshots=EXCLUDED.screenshots,
+                                                                 	mainfileid=EXCLUDED.mainfileid,
+                                                                 	latestfiles=EXCLUDED.latestfiles,
+                                                                 	latestfileindexes=EXCLUDED.latestfileindexes,
+                                                                 	datecreated=EXCLUDED.datecreated,
+                                                                 	datemodified=EXCLUDED.datemodified,
+                                                                 	datereleased=EXCLUDED.datereleased,
+                                                                 	allowmoddistribution=EXCLUDED.allowmoddistribution,
+                                                                 	gamepopularityrank=EXCLUDED.gamepopularityrank,
+                                                                 	isavailable=EXCLUDED.isavailable,
+                                                                 	thumbsupcount=EXCLUDED.thumbsupcount,
+                                                                 	rating=EXCLUDED.rating,
+                                                                 	latestupdate=timezone('UTC'::text, now());
+
+                                                                 """);
+
+                                cmd.Parameters.AddWithValue(mod.Id);
+                                cmd.Parameters.AddWithValue(mod.GameId);
+                                cmd.Parameters.AddWithValue(mod.Name);
+                                cmd.Parameters.AddWithValue(mod.Slug);
+                                cmd.Parameters.Add(new NpgsqlParameter()
+                                {
+                                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                                    Value = JsonSerializer.Serialize(mod.Links)
+                                });
+                                cmd.Parameters.AddWithValue(mod.Summary.Replace("\0", ""));
+                                cmd.Parameters.AddWithValue((int)mod.Status);
+                                cmd.Parameters.AddWithValue(mod.DownloadCount);
+                                cmd.Parameters.AddWithValue(mod.IsFeatured);
+                                cmd.Parameters.AddWithValue(mod.PrimaryCategoryId);
+                                cmd.Parameters.Add(new NpgsqlParameter
+                                {
+                                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                                    Value = JsonSerializer.Serialize(mod.Categories)
+                                });
+                                cmd.Parameters.Add(new NpgsqlParameter
+                                {
+                                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Integer,
+                                    Value = (object?)mod.ClassId ?? DBNull.Value
+                                });
+                                cmd.Parameters.Add(new NpgsqlParameter
+                                {
+                                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                                    Value = JsonSerializer.Serialize(mod.Authors)
+                                });
+                                cmd.Parameters.Add(new NpgsqlParameter
+                                {
+                                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                                    Value = JsonSerializer.Serialize(mod.Logo)
+                                });
+                                cmd.Parameters.Add(new NpgsqlParameter
+                                {
+                                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                                    Value = JsonSerializer.Serialize(mod.Screenshots)
+                                });
+                                cmd.Parameters.AddWithValue(mod.MainFileId);
+                                cmd.Parameters.Add(new NpgsqlParameter
+                                {
+                                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                                    Value = JsonSerializer.Serialize(mod.LatestFiles)
+                                });
+                                cmd.Parameters.Add(new NpgsqlParameter
+                                {
+                                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
+                                    Value = JsonSerializer.Serialize(mod.LatestFilesIndexes)
+                                });
+                                cmd.Parameters.AddWithValue(mod.DateCreated);
+                                cmd.Parameters.AddWithValue(mod.DateModified);
+                                cmd.Parameters.AddWithValue(mod.DateReleased);
+                                cmd.Parameters.Add(new NpgsqlParameter
+                                {
+                                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Boolean,
+                                    Value = (object?)mod.AllowModDistribution ?? DBNull.Value
+                                });
+                                cmd.Parameters.AddWithValue(mod.GamePopularityRank);
+                                cmd.Parameters.AddWithValue(mod.IsAvailable);
+                                cmd.Parameters.AddWithValue(mod.ThumbsUpCount);
+                                cmd.Parameters.Add(new NpgsqlParameter
+                                {
+                                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Double,
+                                    Value = (object?)mod.Rating ?? DBNull.Value
+                                });
+
+                                batch.BatchCommands.Add(cmd);
+
+                                projectMetrics.Add(new InfluxProjectMetric
+                                {
+                                    ProjectId = mod.Id,
+                                    GameId = mod.GameId,
+                                    DownloadCount = mod.DownloadCount,
+                                    ThumbsUpCount = mod.ThumbsUpCount,
+                                    GamePopularityRank = mod.GamePopularityRank,
+                                    Timestamp = currentTs
+                                });
+
+                                if (batch.BatchCommands.Count >= 1000)
+                                {
+                                    if (!await ExecuteBatchWithRetries(batch))
+                                    {
+                                        // No-op for now, maybe Discord logs later
+                                    }
+
+                                    await influxWriter.WriteBatchAsync("CFLookup", "cf_project_data", projectMetrics);
+                                    projectMetrics.Clear();
+                                    currentTs = DateTime.UtcNow;
+                                    token.ThrowIfCancellationRequested();
+                                }
+                            }
+
+                            if (batch.BatchCommands.Count > 0)
                             {
                                 if (!await ExecuteBatchWithRetries(batch))
                                 {
                                     // No-op for now, maybe Discord logs later
                                 }
-                                
+
                                 await influxWriter.WriteBatchAsync("CFLookup", "cf_project_data", projectMetrics);
                                 projectMetrics.Clear();
-                                currentTs = DateTime.UtcNow;
+
                                 token.ThrowIfCancellationRequested();
                             }
+
+                            await tx.CommitAsync();
                         }
 
-                        if (batch.BatchCommands.Count > 0)
-                        {
-                            if (!await ExecuteBatchWithRetries(batch))
-                            {
-                                // No-op for now, maybe Discord logs later
-                            }
-                            
-                            await influxWriter.WriteBatchAsync("CFLookup", "cf_project_data", projectMetrics);
-                            projectMetrics.Clear();
-                            
-                            token.ThrowIfCancellationRequested();
-                        }
-
-                        await tx.CommitAsync();
+                        token.ThrowIfCancellationRequested();
                     }
-                    
-                    token.ThrowIfCancellationRequested();
                 }
                 catch (Exception ex)
                 {
                     await SendDiscordErrorNotification(scope, $"Exception: {ex}");
-                }
-                finally
-                {
-                    BackgroundJob.Schedule(() => StoreCFApiProjects.RunAsync(null, JobCancellationToken.Null), TimeSpan.FromMinutes(10));
                 }
             }
         }
