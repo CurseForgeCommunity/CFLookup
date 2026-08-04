@@ -17,8 +17,8 @@ namespace CFLookup.Pages
     public class ProjectSearchModel : PageModel
     {
         private const int PageSize = 100;
-
-        private readonly NpgsqlConnection _conn;
+        
+        private readonly NpgsqlDataSource _db;
         private readonly IDatabaseAsync _redis;
         private readonly ApiClient _cfApiClient;
         private readonly ILogger<ProjectSearchModel> _logger;
@@ -30,9 +30,9 @@ namespace CFLookup.Pages
 
         public string? SelectedGameName { get; set; }
 
-        public ProjectSearchModel(NpgsqlConnection conn, ConnectionMultiplexer connectionMultiplexer, ApiClient cfApiClient, ILogger<ProjectSearchModel> logger)
+        public ProjectSearchModel(NpgsqlDataSource db, ConnectionMultiplexer connectionMultiplexer, ApiClient cfApiClient, ILogger<ProjectSearchModel> logger)
         {
-            _conn = conn;
+            _db = db;
             _redis = connectionMultiplexer.GetDatabase(5);
             _cfApiClient = cfApiClient;
             _logger = logger;
@@ -52,6 +52,7 @@ namespace CFLookup.Pages
 
         private async Task ExecuteSearchAsync()
         {
+            await using var conn = await _db.OpenConnectionAsync();
             var sqlBuilder = new StringBuilder();
             sqlBuilder.Append(
                 """
@@ -63,60 +64,28 @@ namespace CFLookup.Pages
                     LEFT JOIN game_data gd ON pd.gameid = gd.gameid
                 """);
 
-            var conditions = new List<string>();
-
-            await using var cmd = _conn.CreateCommand();
+            await using var cmd = conn.CreateCommand();
             cmd.CommandType = CommandType.Text;
 
-            if (!string.IsNullOrWhiteSpace(Criteria.Query))
+            var conditions = BuildFilterConditions(cmd);
+
+            if (conn.State != ConnectionState.Open)
             {
-                var paramName = "q";
-                conditions.Add("(pd.name ILIKE @" + paramName + " OR pd.slug ILIKE @" + paramName + " OR pd.summary ILIKE @" + paramName + ")");
-                cmd.Parameters.AddWithValue(paramName, $"%{Criteria.Query.Trim()}%");
+                await conn.OpenAsync();
             }
 
-            if (Criteria.GameId.HasValue)
+            await using var countCmd = conn.CreateCommand();
+            countCmd.CommandType = CommandType.Text;
+            var countConditions = BuildFilterConditions(countCmd);
+
+            var countSql = new StringBuilder("SELECT COUNT(*) FROM project_data pd LEFT JOIN game_data gd ON pd.gameid = gd.gameid");
+            if (countConditions.Count > 0)
             {
-                conditions.Add("pd.gameid = @gameId");
-                cmd.Parameters.AddWithValue("gameId", Criteria.GameId.Value);
+                countSql.Append(" WHERE ").Append(string.Join(" AND ", countConditions));
             }
 
-            if (Criteria.Filters is { Count: > 0 })
-            {
-                var paramIndex = 0;
-                foreach (var filter in Criteria.Filters)
-                {
-                    if (filter == null ||
-                        string.IsNullOrWhiteSpace(filter.Field) ||
-                        string.IsNullOrWhiteSpace(filter.Operator) ||
-                        string.IsNullOrWhiteSpace(filter.Value))
-                    {
-                        continue;
-                    }
-
-                    if (filter.Field == "Author")
-                    {
-                        if (TryBuildAuthorCondition(filter, cmd, ref paramIndex, out var authorCondition))
-                        {
-                            conditions.Add(authorCondition);
-                        }
-
-                        continue;
-                    }
-
-                    if (!TryGetColumnInfo(filter.Field, out var columnName, out var valueType))
-                    {
-                        continue;
-                    }
-
-                    if (!TryBuildFilterCondition(filter, columnName, valueType, cmd, ref paramIndex, out var condition))
-                    {
-                        continue;
-                    }
-
-                    conditions.Add(condition);
-                }
-            }
+            countCmd.CommandText = countSql.ToString();
+            var totalCount = (long)(await countCmd.ExecuteScalarAsync() ?? 0L);
 
             SearchCursor.TryDecode(Criteria.Cursor, out var cursor);
             var isPrevious = cursor is { Direction: "prev" };
@@ -146,16 +115,12 @@ namespace CFLookup.Pages
 
             cmd.CommandText = sqlBuilder.ToString();
 
-            if (_conn.State != ConnectionState.Open)
-            {
-                await _conn.OpenAsync();
-            }
-
             var results = new List<ProjectSearchResult>();
 
             ViewModel = new ProjectSearchPageViewModel
             {
-                Criteria = Criteria
+                Criteria = Criteria,
+                TotalCount = totalCount
             };
 
             try
@@ -238,8 +203,68 @@ namespace CFLookup.Pages
 
             if (Criteria.GameId.HasValue)
             {
-                SelectedGameName = await SharedMethods.GetGameNameForDisplay(_conn, _redis, _cfApiClient, Criteria.GameId.Value);
+                SelectedGameName = await SharedMethods.GetGameNameForDisplay(conn, _redis, _cfApiClient, Criteria.GameId.Value);
             }
+        }
+
+        // Shared between the results query and the COUNT(*) query so the two can never drift apart -
+        // "how many total" must always reflect exactly the same WHERE clause as "which ones are shown".
+        // Cursor pagination is deliberately excluded here; the total reflects the search, not the page.
+        private List<string> BuildFilterConditions(NpgsqlCommand targetCmd)
+        {
+            var conditions = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(Criteria.Query))
+            {
+                var paramName = "q";
+                conditions.Add("(pd.name ILIKE @" + paramName + " OR pd.slug ILIKE @" + paramName + " OR pd.summary ILIKE @" + paramName + ")");
+                targetCmd.Parameters.AddWithValue(paramName, $"%{Criteria.Query.Trim()}%");
+            }
+
+            if (Criteria.GameId.HasValue)
+            {
+                conditions.Add("pd.gameid = @gameId");
+                targetCmd.Parameters.AddWithValue("gameId", Criteria.GameId.Value);
+            }
+
+            if (Criteria.Filters is { Count: > 0 })
+            {
+                var paramIndex = 0;
+                foreach (var filter in Criteria.Filters)
+                {
+                    if (filter == null ||
+                        string.IsNullOrWhiteSpace(filter.Field) ||
+                        string.IsNullOrWhiteSpace(filter.Operator) ||
+                        string.IsNullOrWhiteSpace(filter.Value))
+                    {
+                        continue;
+                    }
+
+                    if (filter.Field == "Author")
+                    {
+                        if (TryBuildAuthorCondition(filter, targetCmd, ref paramIndex, out var authorCondition))
+                        {
+                            conditions.Add(authorCondition);
+                        }
+
+                        continue;
+                    }
+
+                    if (!TryGetColumnInfo(filter.Field, out var columnName, out var valueType))
+                    {
+                        continue;
+                    }
+
+                    if (!TryBuildFilterCondition(filter, columnName, valueType, targetCmd, ref paramIndex, out var condition))
+                    {
+                        continue;
+                    }
+
+                    conditions.Add(condition);
+                }
+            }
+
+            return conditions;
         }
 
         private static bool TryGetColumnInfo(string field, out string columnName, out FilterValueType valueType)

@@ -108,6 +108,8 @@ namespace CFLookup.Models
 
         public List<ProjectSearchResult> Results { get; set; } = new();
 
+        public long TotalCount { get; set; }
+
         public string? NextCursor { get; set; }
 
         public string? PreviousCursor { get; set; }
