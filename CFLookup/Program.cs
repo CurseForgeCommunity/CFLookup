@@ -132,8 +132,8 @@ public class Program
         builder.Services.AddScoped<InfluxDBWriter>();
 
         builder.Services.AddScoped(x => new SqlConnection(dbConnectionString));
-
-        builder.Services.AddScoped(x => new NpgsqlConnection(pgsqlConnString));
+        
+        builder.Services.AddNpgsqlDataSource(pgsqlConnString);
 
         builder.Services.AddScoped<MSSQLDB>();
 #if !DEBUG

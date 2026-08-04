@@ -90,6 +90,8 @@ namespace CFLookup.Models
 
         public long ThumbsUpCount { get; set; }
 
+        public double? Rating { get; set; }
+
         public DateTimeOffset DateCreated { get; set; }
 
         public DateTimeOffset DateModified { get; set; }

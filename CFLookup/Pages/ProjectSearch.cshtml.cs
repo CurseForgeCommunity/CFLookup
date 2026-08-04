@@ -57,7 +57,7 @@ namespace CFLookup.Pages
                 """
                     SELECT pd.projectid, pd.gameid, pd.name, pd.slug, pd.summary, pd.status, pd.downloadcount, pd.isfeatured,
                          pd.primarycategoryid, pd.classid, pd.allowmoddistribution, pd.gamepopularityrank,
-                         pd.isavailable, pd.thumbsupcount, pd.datecreated, pd.datemodified, pd.datereleased, pd.latestupdate,
+                         pd.isavailable, pd.thumbsupcount, pd.rating, pd.datecreated, pd.datemodified, pd.datereleased, pd.latestupdate,
                          gd.name as gamename
                     FROM project_data pd
                     LEFT JOIN game_data gd ON pd.gameid = gd.gameid
@@ -184,6 +184,7 @@ namespace CFLookup.Pages
                         GamePopularityRank = reader.GetInt64(reader.GetOrdinal("gamepopularityrank")),
                         IsAvailable = reader.GetBoolean(reader.GetOrdinal("isavailable")),
                         ThumbsUpCount = reader.GetInt64(reader.GetOrdinal("thumbsupcount")),
+                        Rating = reader.IsDBNull("rating") ? null : reader.GetDouble(reader.GetOrdinal("rating")),
                         DateCreated = reader.GetDateTime(reader.GetOrdinal("datecreated")),
                         DateModified = reader.GetDateTime(reader.GetOrdinal("datemodified")),
                         DateReleased = reader.GetDateTime(reader.GetOrdinal("datereleased")),
@@ -286,6 +287,10 @@ namespace CFLookup.Pages
                     return true;
                 case "ThumbsUpCount":
                     columnName = "pd.thumbsupcount";
+                    valueType = FilterValueType.Numeric;
+                    return true;
+                case "Rating":
+                    columnName = "pd.rating";
                     valueType = FilterValueType.Numeric;
                     return true;
                 case "DateCreated":
@@ -443,6 +448,11 @@ namespace CFLookup.Pages
             if (columnName is "pd.status" or "pd.primarycategoryid" or "pd.classid")
             {
                 return int.Parse(value, CultureInfo.InvariantCulture);
+            }
+
+            if (columnName is "pd.rating")
+            {
+                return double.Parse(value, CultureInfo.InvariantCulture);
             }
 
             return long.Parse(value, CultureInfo.InvariantCulture);
