@@ -17,7 +17,7 @@ namespace CFLookup.Jobs
     public class StoreCFApiProjects
     {
         const int BUCKET_SIZE = 10_000;
-        private const int EMPTY_BUCKETS = 100;
+        private const int EMPTY_BUCKETS = 25;
         private const int RETRY_BATCH = 10;
 
         public async static Task RunAsync(PerformContext context, IJobCancellationToken token)
@@ -55,7 +55,6 @@ namespace CFLookup.Jobs
                         token.ThrowIfCancellationRequested();
 
                         var _bucket = Enumerable.Range(bucket.start, bucket.items).ToList();
-                        var breakLoop = false;
 
                         var (modList, retries) = await GetMods(scope, cfClient, _bucket);
                         
@@ -66,7 +65,7 @@ namespace CFLookup.Jobs
                             emptyBuckets++;
                             if (emptyBuckets >= EMPTY_BUCKETS)
                             {
-                                breakLoop = true;
+                                break;
                             }
                         }
                         else
@@ -74,7 +73,7 @@ namespace CFLookup.Jobs
                             emptyBuckets = 0;
                         }
                         
-                        if (breakLoop || retries >= 5 || modList is null)
+                        if (retries >= 5 || modList is null)
                         {
                             continue;
                         }
@@ -235,7 +234,7 @@ namespace CFLookup.Jobs
                             cmd.Parameters.Add(new NpgsqlParameter
                             {
                                 NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.LatestFilesIndexes.OrderByDescending(c => c.FileId))
+                                Value = JsonSerializer.Serialize(mod.LatestFilesIndexes.OrderByDescending(c => c.FileId).ThenBy(c => c.GameVersion))
                             });
                             cmd.Parameters.AddWithValue(mod.DateCreated);
                             cmd.Parameters.AddWithValue(mod.DateModified);
