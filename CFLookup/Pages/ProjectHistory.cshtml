@@ -1,0 +1,56 @@
+@page "/project-history/{projectId:long}"
+@model CFLookup.Pages.ProjectHistoryModel
+@{
+    ViewData["Title"] = Model.ProjectName != null ? $"{Model.ProjectName} - History" : "Project history";
+}
+
+<h1 class="mb-1">@(Model.ProjectName ?? $"Project {Model.ProjectId}") <small class="text-muted">history</small></h1>
+<p class="text-muted">
+    @if (!string.IsNullOrWhiteSpace(Model.GameName))
+    {
+        @Model.GameName
+        <text> &middot; </text>
+    }
+    <a asp-page="/Index" asp-route-projectId="@Model.ProjectId">View project</a>
+    <text> &middot; </text>
+    <a asp-page="/ProjectSearch">Back to search</a>
+</p>
+
+@if (Model.History.Count == 0)
+{
+    <p class="text-muted mt-4">No tracked changes for this project yet.</p>
+}
+else
+{
+    <div class="table-responsive mt-3">
+        <table class="table table-dark table-striped table-sm align-middle">
+            <thead>
+                <tr>
+                    <th scope="col" style="width: 220px;">Changed</th>
+                    <th scope="col">What changed</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in Model.History)
+                {
+                    <tr>
+                        <td class="text-muted">@entry.ChangedAt.ToString("yyyy-MM-dd HH:mm:ss") UTC</td>
+                        <td>
+                            <ul class="mb-0 ps-3">
+                                @foreach (var change in entry.Changes)
+                                {
+                                    <li>
+                                        <strong>@change.Key</strong>:
+                                        <span class="text-danger">@(change.Value.Old?.ToString() is { Length: > 0 } o ? o : "(none)")</span>
+                                        &rarr;
+                                        <span class="text-success">@(change.Value.New?.ToString() is { Length: > 0 } n ? n : "(none)")</span>
+                                    </li>
+                                }
+                            </ul>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

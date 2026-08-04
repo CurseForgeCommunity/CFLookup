@@ -185,6 +185,38 @@ namespace CFLookup
             return await GetCategoryInfo(_redis, _cfApiClient, gameId);
         }
 
+        public async static Task<List<ProjectHistoryEntry>> GetProjectHistory(NpgsqlConnection conn, long projectId, int limit = 50)
+        {
+            if (conn.State != ConnectionState.Open)
+            {
+                await conn.OpenAsync();
+            }
+
+            var history = new List<ProjectHistoryEntry>();
+
+            await using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT changed_at, changes FROM project_data_history WHERE projectid = @projectId ORDER BY changed_at DESC LIMIT @limit";
+                cmd.Parameters.AddWithValue("projectId", projectId);
+                cmd.Parameters.AddWithValue("limit", limit);
+
+                await using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var changesJson = reader.GetString(reader.GetOrdinal("changes"));
+                    var changes = JsonSerializer.Deserialize<Dictionary<string, ProjectHistoryFieldChange>>(changesJson) ?? new();
+
+                    history.Add(new ProjectHistoryEntry
+                    {
+                        ChangedAt = reader.GetDateTime(reader.GetOrdinal("changed_at")),
+                        Changes = changes
+                    });
+                }
+            }
+
+            return history;
+        }
+
         public async static Task<FieldRangeStats> GetFieldRangeStats(IDatabaseAsync _redis, NpgsqlConnection conn)
         {
             var cachedResponse = await _redis.StringGetAsync("cf-search-field-ranges");

@@ -60,5 +60,13 @@ namespace CFLookup
 
             return new JsonResult(stats);
         }
+
+        [HttpGet("History/{projectId:long}")]
+        public async Task<IActionResult> History(long projectId, int limit = 10)
+        {
+            var history = await SharedMethods.GetProjectHistory(_conn, projectId, limit);
+
+            return new JsonResult(history);
+        }
     }
 }

@@ -323,7 +323,10 @@
                         </tr>
                         <tr>
                             <td><b>Downloads (might be inaccurate)</b></td>
-                            <td class="text-end">@Model.FoundMod.DownloadCount.ToString("n0")</td>
+                            <td class="text-end text-nowrap">
+                                @Model.FoundMod.DownloadCount.ToString("n0")
+                                <button type="button" class="btn btn-sm btn-link p-0 ms-1 show-download-graph" data-project-id="@Model.FoundMod.Id" data-project-name="@Model.FoundMod.Name" title="View 90-day download trend">📈</button>
+                            </td>
                         </tr>
                         @if (modClass != null)
                         {
@@ -343,6 +346,14 @@
                         <tr>
                             <td><b>Available for download</b></td>
                             <td class="text-end">@(Model.FoundMod.IsAvailable ? "Available" : "Not Available")</td>
+                        </tr>
+                        <tr>
+                            <td><b>Change history</b></td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-link p-0 show-history" data-project-id="@Model.FoundMod.Id" data-project-name="@Model.FoundMod.Name" title="View recent changes">🕘 Recent changes</button>
+                                &middot;
+                                <a asp-page="/ProjectHistory" asp-route-projectId="@Model.FoundMod.Id" class="text-white">Full history</a>
+                            </td>
                         </tr>
                     </tbody>
                 </table>

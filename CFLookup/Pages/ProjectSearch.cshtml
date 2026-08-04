@@ -158,10 +158,10 @@
                 @foreach (var row in Model.ViewModel.Results)
                 {
                     <tr>
-                        <td>
+                        <td class="text-nowrap">
+                            <button type="button" class="btn btn-sm p-0 ms-1 show-history" data-project-id="@row.ProjectId" data-project-name="@row.Name" title="View recent changes">🕘</button>
                             <a asp-page="/Index"
-                               asp-route-projectId="@row.ProjectId"
-                               >
+                               asp-route-projectId="@row.ProjectId">
                                 @row.ProjectId
                             </a>
                         </td>
@@ -169,7 +169,10 @@
                         <td>@row.Slug</td>
                         <td>@(!string.IsNullOrWhiteSpace(row.GameName) ? row.GameName : "Unknown game") (@row.GameId)</td>
                         <td>@row.Status</td>
-                        <td class="text-end">@row.DownloadCount.ToString("n0")</td>
+                        <td class="text-end text-nowrap">
+                            @row.DownloadCount.ToString("n0")
+                            <button type="button" class="btn btn-sm p-0 ms-1 show-download-graph" data-project-id="@row.ProjectId" data-project-name="@row.Name" title="View 90-day download trend">📈</button>
+                        </td>
                         <td>@(row.IsFeatured ? "Yes" : "No")</td>
                         <td>@(row.IsAvailable ? "Yes" : "No")</td>
                     </tr>
