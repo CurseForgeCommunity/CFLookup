@@ -5,6 +5,7 @@ using CurseForge.APIClient.Models.Mods;
 using Hangfire;
 using Hangfire.Console;
 using Hangfire.Server;
+using NaturalSort.Extension;
 using Npgsql;
 using StackExchange.Redis;
 using System.Diagnostics;
@@ -19,6 +20,9 @@ namespace CFLookup.Jobs
         const int BUCKET_SIZE = 10_000;
         private const int EMPTY_BUCKETS = 25;
         private const int RETRY_BATCH = 10;
+
+        private static readonly NaturalSortComparer NaturalSortComparer =
+            new(StringComparison.OrdinalIgnoreCase);
 
         public async static Task RunAsync(PerformContext context, IJobCancellationToken token)
         {
@@ -55,8 +59,12 @@ namespace CFLookup.Jobs
                         token.ThrowIfCancellationRequested();
 
                         var _bucket = Enumerable.Range(bucket.start, bucket.items).ToList();
+                        
+                        var bucketFetchTime = Stopwatch.GetTimestamp();
 
                         var (modList, retries) = await GetMods(scope, cfClient, _bucket);
+                        
+                        context.WriteLine($"Took {Stopwatch.GetElapsedTime(bucketFetchTime)} to fetch the bucket ({bucket.start}-{bucket.end})");
                         
                         token.ThrowIfCancellationRequested();
                         
@@ -234,7 +242,7 @@ namespace CFLookup.Jobs
                             cmd.Parameters.Add(new NpgsqlParameter
                             {
                                 NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Jsonb,
-                                Value = JsonSerializer.Serialize(mod.LatestFilesIndexes.OrderByDescending(c => c.FileId).ThenBy(c => c.GameVersion))
+                                Value = JsonSerializer.Serialize(mod.LatestFilesIndexes.OrderByDescending(c => c.FileId).ThenByDescending(c => c.GameVersion, NaturalSortComparer))
                             });
                             cmd.Parameters.AddWithValue(mod.DateCreated);
                             cmd.Parameters.AddWithValue(mod.DateModified);
@@ -294,6 +302,8 @@ namespace CFLookup.Jobs
 
                         await tx.CommitAsync();
                     }
+                    
+                    context.WriteLine($"Fetched all buckets, saved all data in {Stopwatch.GetElapsedTime(startTime)}");
 
                     token.ThrowIfCancellationRequested();
                 }

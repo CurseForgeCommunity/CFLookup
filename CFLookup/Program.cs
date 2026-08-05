@@ -1,4 +1,5 @@
 using CFLookup;
+using Hangfire.Console;
 using InfluxDB.Client;
 using Microsoft.AspNetCore.DataProtection;
 #if !DEBUG
@@ -147,7 +148,8 @@ public class Program
                     Db = 7,
                     Prefix = "cflookup:",
                     InvisibilityTimeout = TimeSpan.FromHours(6)
-                });
+                })
+                .UseConsole();
         });
 
         builder.Services.AddHangfireServer(options =>
