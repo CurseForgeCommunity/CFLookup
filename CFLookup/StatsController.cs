@@ -29,7 +29,7 @@ namespace CFLookup
         public async Task<IActionResult> MinecraftModStats()
         {
             var minecraftStats = (await SharedMethods.GetMinecraftModStatistics(_redis, _cfApiClient))
-                .OrderBy(gvt => Regex.Replace(gvt.Key, "\\d+", m => m.Value.PadLeft(10, '0')));
+                .OrderBy(gvt => SharedMethods.GetMinecraftVersionSortKey(gvt.Key), StringComparer.Ordinal);
             var cacheExpiration = await _redis.KeyTimeToLiveAsync("cf-mcmod-stats");
 
             return new JsonResult(new
@@ -43,7 +43,7 @@ namespace CFLookup
         public async Task<IActionResult> MinecraftModpackStats()
         {
             var minecraftStats = (await SharedMethods.GetMinecraftModpackStatistics(_redis, _cfApiClient))
-                .OrderBy(gvt => Regex.Replace(gvt.Key, "\\d+", m => m.Value.PadLeft(10, '0')));
+                .OrderBy(gvt => SharedMethods.GetMinecraftVersionSortKey(gvt.Key), StringComparer.Ordinal);
             var cacheExpiration = await _redis.KeyTimeToLiveAsync("cf-mcmodpack-stats");
 
             return new JsonResult(new

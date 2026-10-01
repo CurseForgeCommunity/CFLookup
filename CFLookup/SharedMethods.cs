@@ -16,6 +16,17 @@ namespace CFLookup
 {
     public static class SharedMethods
     {
+        public static string GetMinecraftVersionSortKey(string gameVersion)
+        {
+            // Some version types are named "Minecraft 1.21", others just "26.1", so strip the prefix first.
+            // '-' is swapped for '~' so e.g. "26-snapshots" sorts after the numbered 26.x versions.
+            var version = Regex.Replace(gameVersion, "^Minecraft\\s+", string.Empty, RegexOptions.IgnoreCase);
+            return Regex.Replace(version, "\\d+", m => m.Value.PadLeft(10, '0')).Replace('-', '~');
+        }
+
+        public static string GetMinecraftVersionDisplayName(string gameVersion) =>
+            gameVersion.StartsWith("Minecraft ", StringComparison.OrdinalIgnoreCase) ? gameVersion : $"Minecraft {gameVersion}";
+
         public async static Task<List<Game>> GetGameInfo(IDatabaseAsync _redis, ApiClient _cfApiClient)
         {
             var cachedGames = await _redis.StringGetAsync("cf-games");
