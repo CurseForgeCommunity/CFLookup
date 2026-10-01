@@ -4,7 +4,7 @@
 @model CFLookup.Pages.MinecraftModStatsModel
 @{
     ViewData["Title"] = "Minecraft mod stats";
-    var modData = Model.MinecraftStats.OrderBy(gvt => Regex.Replace(gvt.Key, "\\d+", m => m.Value.PadLeft(10, '0')));
+    var modData = Model.MinecraftStats.OrderBy(gvt => SharedMethods.GetMinecraftVersionSortKey(gvt.Key), StringComparer.Ordinal);
 }
 @section Head {
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -66,7 +66,7 @@
     </thead>
     <tbody>
             @Html.Raw(string.Join("\n", modData.Select(d =>
-        $"<tr><td scope=\"row\">{d.Key}</td><td class=\"text-end\">{d.Value[ModLoaderType.Forge].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Fabric].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Quilt].ToString("n0")}</td><td class=\"text-end\">{d.Value[(ModLoaderType)6].ToString("n0")}</td></tr>")))
+        $"<tr><td scope=\"row\">{SharedMethods.GetMinecraftVersionDisplayName(d.Key)}</td><td class=\"text-end\">{d.Value[ModLoaderType.Forge].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Fabric].ToString("n0")}</td><td class=\"text-end\">{d.Value[ModLoaderType.Quilt].ToString("n0")}</td><td class=\"text-end\">{d.Value[(ModLoaderType)6].ToString("n0")}</td></tr>")))
     </tbody>
 </table>
 <hr />
